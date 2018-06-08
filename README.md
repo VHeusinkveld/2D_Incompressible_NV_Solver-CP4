@@ -2,3 +2,4 @@
 ## Structure
 
 *functions*: Trial function for 2D linear convection
+*navier_stoke*: Navier-Stokes solver (FEM)
