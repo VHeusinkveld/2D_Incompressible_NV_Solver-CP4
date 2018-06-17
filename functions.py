@@ -106,9 +106,9 @@ def laplace_m(n, h, boundary_condition):
         number of grid cells in certain direction
     h : float
         velocity components in x-direction in grid
-    bc : int
-           1, 2 or 3 which stand for the type of boundary condition:
-           Neumann, Dirichlet for point on boundary and Dirichlet for boundary between two point, respectively
+    boundary_condition : int
+        1, 2 or 3 which stand for the type of boundary condition:
+        Neumann, Dirichlet for point on boundary and Dirichlet for boundary between two point, respectively
     
     Returns
     -------
@@ -118,15 +118,14 @@ def laplace_m(n, h, boundary_condition):
     """
     
     diag_len = n 
-    Lm = 2*np.ones(diag_len)  # Create diagonal values 
-    Lu = np.diag(-1*np.ones(diag_len-1), k=1) # Up offdiagonal value 
-    Ld = np.diag(-1*np.ones(diag_len-1), k=-1)# Down offdiagonal value 
-   
+
+    Lm = 2*np.ones(diag_len)      # n,m   elements
+    Lu = -1*np.ones(diag_len-1)   # n,m+1 elements 
+    Ld = -1*np.ones(diag_len-1)   # n,m-1 elements 
     Lm[[0,-1]] = boundary_condition
-            
-    Lm=np.diag(Lm, k=0)
     
-    L = (Lu + Lm + Ld)/h**2
+    # Compressed sparse column (CSC) format needed for Cholensky decomposition
+    L = spa.diags([Lu, Lm, Ld], offsets=[-1,0,1], format="csc")/h**2
     return L
 
 def set_BC(const, bc, situation):
@@ -160,10 +159,10 @@ def set_BC(const, bc, situation):
         bc.vE = const.y*0
         
     elif situation == 'horizontal_tube':
-        bc.uN = const.x*0
-        bc.uE = ave(const.y, 'h')*0 
-        bc.uS = const.x*0
-        bc.uW = ave(const.y, 'h')*0
+        bc.uN = const.x*0 + 1
+        bc.uE = ave(const.y, 'h')*0 + 1 
+        bc.uS = const.x*0 + 1
+        bc.uW = ave(const.y, 'h')*0 + 1
 
         bc.vN = ave(const.x, 'h')*0 
         bc.vW = const.y*0
@@ -176,10 +175,10 @@ def set_BC(const, bc, situation):
         bc.uS = const.x*0
         bc.uW = ave(const.y, 'h')*0
 
-        bc.vN = ave(const.x, 'h')*0 
-        bc.vW = const.y*0
-        bc.vS = ave(const.x, 'h')*0
-        bc.vE = const.y*0
+        bc.vN = ave(const.x, 'h')*0 + 1
+        bc.vW = const.y*0 + 1
+        bc.vS = ave(const.x, 'h')*0 + 1
+        bc.vE = const.y*0 + 1
         
     elif situation == 'airfoil':
         bc.uN = const.x*0
@@ -211,20 +210,20 @@ def set_BM(const, bc):
         floats defining in- and outflow speed of fluid
           
     """
-    Ubc = const.dt/const.Re * (
+    Ubc = const.dt/const.Re*(
         (np.vstack(
             (2*bc.uS[1:-1], np.zeros((const.nx-1,const.ny-2), dtype=float).T, 2*bc.uN[1:-1])).T
-        ) / const.hx**2 +
+        )/const.hx**2 +
         np.vstack(
             (bc.uW, np.zeros((const.nx-3, const.ny), dtype=float), bc.uE)
-        ) / const.hy**2 )
-    Vbc = const.dt/const.Re * (
+        )/const.hy**2 )
+    Vbc = const.dt/const.Re*(
         (np.vstack(
             (bc.vS, np.zeros((const.nx,const.ny-3), dtype = float).T, bc.vN)).T
-        ) / const.hx**2 + 
+        )/const.hx**2 + 
         np.vstack(
             (2*bc.vW[1:-1], np.zeros((const.nx-2, const.ny-1), dtype=float), 2*bc.vE[1:-1])
-        ) / const.hy**2 )
+        )/const.hy**2 )
 
     return Ubc, Vbc
 
