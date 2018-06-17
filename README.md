@@ -1,8 +1,9 @@
 # Navier-Stokes: NACA-profile objects in 2D flow
 ## Structure
 
-*navier_stoke.ipynb*: 2D Navier-Stokes solver (FDM) (Initial script, will be removed soon)
+*create_animation.ipynb*: Contains function for making a animation from premade figures
 *Execute_simulation.ipynb*: Main file which executes the NS simulation. This contains the set-up of the simulation.
+*navier_stoke.ipynb*: 2D Navier-Stokes solver (FDM) (Initial script, will be removed soon)
 
 *constants.py*: Contains the constants of the system
 *data_processing.py*: Contains plotting functions
