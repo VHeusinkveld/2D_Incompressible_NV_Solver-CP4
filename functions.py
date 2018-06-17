@@ -125,7 +125,7 @@ def laplace_m(n, h, boundary_condition):
     Lm[[0,-1]] = boundary_condition
     
     # Compressed sparse column (CSC) format needed for Cholensky decomposition
-    L = spa.diags([Lu, Lm, Ld], offsets=[-1,0,1], format="csc")/h**2
+    L = spa.diags([Lu, Lm, Ld], offsets=[1,0,-1], format="csc")/h**2
     return L
 
 def set_BC(const, bc, situation):
