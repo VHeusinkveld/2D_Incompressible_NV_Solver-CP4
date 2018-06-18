@@ -73,16 +73,16 @@ def simulation_step(const, bc, LP, data):
     data.V = data.V - const.dt*(UVx[:,1:-1] + V2y)    
         
     # Implicit viscosity 
-    u = spala.spsolve(LP.Lu, np.reshape(data.U + const.Ubc,(-1,), order='F'))
+    u = LP.Lu_factor(np.reshape(data.U + const.Ubc,(-1,), order='F')) #spala.spsolve(LP.Lu, np.reshape(data.U + const.Ubc,(-1,), order='F'))
     data.U = np.reshape(u,(const.nx-1, const.ny), order='F')
-    v = spala.spsolve(LP.Lv, np.reshape(data.V + const.Vbc,(-1,), order='F'))
+    v = LP.Lv_factor(np.reshape(data.V + const.Vbc,(-1,), order='F')) #spala.spsolve(LP.Lv, np.reshape(data.V + const.Vbc,(-1,), order='F'))
     data.V = np.reshape(v,(const.nx, const.ny-1), order='F')
     
     # Pressure correction
     grad_U = np.diff(np.vstack((bc.uW, data.U, bc.uE)), n=1, axis=0)/const.hx +\
              np.diff(np.vstack((bc.vS, data.V.T, bc.vN)).T, n=1, axis=1)/const.hy
     rhs = np.reshape(grad_U,(-1,), order='F')/const.dt 
-    p = -spala.spsolve(LP.Lp, rhs)
+    p = -LP.Lp_factor(rhs) #spala.spsolve(LP.Lp, rhs)
     data.P = np.reshape(p,(const.nx,const.ny), order='F')    
     data.U = data.U - np.diff(data.P, n=1, axis=0)/const.hx*const.dt  
     data.V = data.V - np.diff(data.P, n=1, axis=1)/const.hy*const.dt

@@ -1,6 +1,7 @@
 import numpy as np
 import scipy.sparse as spa
 
+from sksparse.cholmod import cholesky
 from types import SimpleNamespace
 
 # -----------------------------------------------------------------------------------------------------------------------
@@ -15,35 +16,51 @@ def initialisation(const, data):
 # -----------------------------------------------------------------------------------------------------------------------
 # Simulation functions
 # -----------------------------------------------------------------------------------------------------------------------
+
+def cholesky_decomposition(LP):
+    """Make factor object which handels cholesky decomposition.
+    
+    To solve a sparse system Lx = b use
+    factor = cholensky(L)
+    x = factor(b) 
+    """
+    
+    LP.Lp_factor = cholesky(LP.Lp)
+    LP.Lu_factor = cholesky(LP.Lu)
+    LP.Lv_factor = cholesky(LP.Lv)
+    LP.Lq_factor = cholesky(LP.Lq)
+    
+    return LP
+    
 def laplacian(const, LP):
     LP.Lp = spa.kron(
-        spa.eye(const.ny), laplace_m(const.nx, const.hx, 1)
+        spa.eye(const.ny), laplace_m(const.nx, const.hx, 1), format="csc"
     ) + spa.kron(
-        laplace_m(const.ny, const.hy, 1), spa.eye(const.nx)
+        laplace_m(const.ny, const.hy, 1), spa.eye(const.nx), format="csc"
     )
     
-    LP.Lu = spa.eye((const.nx - 1) * const.ny) + (const.dt / const.Re) * (
+    LP.Lu = spa.eye((const.nx - 1) * const.ny, format="csc") + (const.dt / const.Re) * (
         spa.kron(
-            spa.eye(const.ny), laplace_m(const.nx - 1, const.hx, 2)
+            spa.eye(const.ny), laplace_m(const.nx - 1, const.hx, 2), format="csc"
         ) +
         spa.kron(
-            laplace_m(const.ny, const.hy, 3), spa.eye(const.nx - 1)
+            laplace_m(const.ny, const.hy, 3), spa.eye(const.nx - 1), format="csc"
         )
     )
     
-    LP.Lv = spa.eye((const.ny-1)*const.nx) + (const.dt / const.Re) * (
+    LP.Lv = spa.eye((const.ny-1)*const.nx, format="csc") + (const.dt / const.Re) * (
         spa.kron(
-            spa.eye(const.ny-1), laplace_m(const.nx, const.hx, 3)
+            spa.eye(const.ny-1), laplace_m(const.nx, const.hx, 3), format="csc"
         ) +
         spa.kron(
-            laplace_m(const.ny-1, const.hy, 2), spa.eye(const.nx)
+            laplace_m(const.ny-1, const.hy, 2), spa.eye(const.nx), format="csc"
         )
     )
     
     LP.Lq = spa.kron(
-        spa.eye(const.ny-1), laplace_m(const.nx-1, const.hx, 2)
+        spa.eye(const.ny-1), laplace_m(const.nx-1, const.hx, 2), format="csc"
     ) + spa.kron(
-        laplace_m(const.ny-1, const.hy, 2), spa.eye(const.nx-1)
+        laplace_m(const.ny-1, const.hy, 2), spa.eye(const.nx-1), format="csc"
     )
     
     return LP
