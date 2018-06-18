@@ -1,5 +1,6 @@
 import numpy as np
 import scipy.sparse as spa
+import matplotlib.pyplot as plt 
 
 from sksparse.cholmod import cholesky
 from types import SimpleNamespace
@@ -253,15 +254,35 @@ def visualise_matrix(matrix, label_title):
     
     Parameters
     ----------
-    matrix : 2D numpy.ndarray, scipy.sparse.bsr.bsr_matrix, scipy.sparse.csr.csr_matrix or scipy.sparse.coo.coo_matrix
+    matrix : 2D numpy.ndarray, scipy.sparse.bsr.bsr_matrix, 
+        scipy.sparse.csr.csr_matrix, scipy.sparse.csc.csc_matrix 
+        or scipy.sparse.coo.coo_matrix
         
     """
+   
     if isinstance(matrix, np.ndarray):
         matrix_plot = matrix
-    elif isinstance(matrix, spa.bsr.bsr_matrix) or isinstance(matrix, spa.coo.coo_matrix) or isinstance(spa.csr.csr_matrix):
-        matrix_plot = matrix.toarray()
-    plt.imshow(matrix_plot)
-    plt.colorbar()
-    plt.clim(np.min(matrix_plot), np.max(matrix_plot))
-    plt.title(label_title)
-    plt.show()
+        plt.title(label_title)
+        plt.show() 
+
+    elif isinstance(matrix, spa.bsr.bsr_matrix) or \
+         isinstance(matrix, spa.coo.coo_matrix) or \
+         isinstance(matrix, spa.csr.csr_matrix) or \
+         isinstance(matrix, spa.csc.csc_matrix):   
+            
+        # Checks if sparse matrix isn't to big to convert to array 
+        if np.sqrt(np.size(matrix)) < 50:
+            matrix_plot = matrix.toarray()    
+
+            plt.imshow(matrix_plot)
+            plt.colorbar()
+            plt.clim(np.min(matrix_plot), np.max(matrix_plot))
+        
+        else:
+            plt.spy(matrix)
+       
+        plt.title(label_title)
+        plt.show()
+        
+    else:
+        print('No valid matrix was given for visualisation.')
