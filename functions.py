@@ -92,7 +92,7 @@ def ave(A, axis):
         
     return average
 
-def gamma_calc(const, U, V):
+def gamma_calc(const, data):
     """
     Calculates gamma factor
     
@@ -100,9 +100,9 @@ def gamma_calc(const, U, V):
     ----------
     const : NameSpace
         contains all system constants (incl. grid specifications)
-    U : 2D array
+    data.U : 2D array
         velocity components in x-direction in grid
-    V : 2D array
+    data.V : 2D array
         velocity components in y-direction in grid
     
     Returns
@@ -111,8 +111,8 @@ def gamma_calc(const, U, V):
         parameter for transition between centered differencing and upwinding
         
     """
-    return np.min((1.2*const.dt*np.max((np.max((np.abs(U)/const.hx)),
-                                        np.max((np.abs(V)/const.hy)))), 1))
+    return np.min((1.2*const.dt*np.max((np.max((np.abs(data.U)/const.hx)),
+                                        np.max((np.abs(data.V)/const.hy)))), 1))
 
 def laplace_m(n, h, boundary_condition):
     """
@@ -263,6 +263,9 @@ def visualise_matrix(matrix, label_title):
     if isinstance(matrix, np.ndarray):
         matrix_plot = matrix
         plt.title(label_title)
+        plt.imshow(matrix_plot)
+        plt.colorbar()
+        plt.clim(np.min(matrix_plot), np.max(matrix_plot))
         plt.show() 
 
     elif isinstance(matrix, spa.bsr.bsr_matrix) or \

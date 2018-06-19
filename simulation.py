@@ -52,7 +52,7 @@ def simulation_step(const, bc, LP, data):
     Vd = np.diff(Ve, n=1, axis=0)/2
     
     ## Calculation of gamma (for smooth transition between centered differencing and upwinding)
-    gamma = gamma_calc(const, data.U, data.V)
+    gamma = gamma_calc(const, data)
     
     ## Derivative matrices UV_x and UV_y
     UVx = np.diff((Ua*Va - gamma*np.abs(Ua)*Vd), axis=0)/const.hx
