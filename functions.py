@@ -165,8 +165,11 @@ def set_BC(const, bc, situation):
         floats defining in- and outflow speed of fluid
           
     """
+    
+    velocity = const.velocity
+    
     if situation == 'lid':
-        bc.uN = const.x*0 + 1
+        bc.uN = const.x*0 + velocity
         bc.uE = ave(const.y, 'h')*0 
         bc.uS = const.x*0
         bc.uW = ave(const.y, 'h')*0
@@ -177,10 +180,10 @@ def set_BC(const, bc, situation):
         bc.vE = const.y*0
         
     elif situation == 'horizontal_tube':
-        bc.uN = const.x*0 + 1
-        bc.uE = ave(const.y, 'h')*0 + 1 
-        bc.uS = const.x*0 + 1
-        bc.uW = ave(const.y, 'h')*0 + 1
+        bc.uN = const.x*0 + velocity
+        bc.uE = ave(const.y, 'h')*0 + velocity 
+        bc.uS = const.x*0 + velocity
+        bc.uW = ave(const.y, 'h')*0 + velocity
 
         bc.vN = ave(const.x, 'h')*0 
         bc.vW = const.y*0
@@ -193,10 +196,10 @@ def set_BC(const, bc, situation):
         bc.uS = const.x*0
         bc.uW = ave(const.y, 'h')*0
 
-        bc.vN = ave(const.x, 'h')*0 + 1
-        bc.vW = const.y*0 + 1
-        bc.vS = ave(const.x, 'h')*0 + 1
-        bc.vE = const.y*0 + 1
+        bc.vN = ave(const.x, 'h')*0 + velocity
+        bc.vW = const.y*0 + velocity
+        bc.vS = ave(const.x, 'h')*0 + velocity
+        bc.vE = const.y*0 + velocity
         
     elif situation == 'airfoil':
         bc.uN = const.x*0
