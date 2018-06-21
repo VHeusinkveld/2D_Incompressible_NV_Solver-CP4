@@ -6,10 +6,11 @@ from data_processing import *
 
 def simulation(const, bc, obj, LP, data):
     counter = 0
-    
+    data.kin_energy = []
     while True:
         counter += 1
         simulation_step(const, bc, obj, LP, data)
+        data.kin_energy = np.append(data.kin_energy, check_energy(data))
         
         if counter == 1:
             print('Iteration number: ' + str(counter))

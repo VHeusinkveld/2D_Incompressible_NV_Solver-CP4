@@ -292,3 +292,10 @@ def visualise_matrix(matrix, label_title):
         
     else:
         print('No valid matrix was given for visualisation.')
+
+# -----------------------------------------------------------------------------------------------------------------------
+# Code check functions
+# -----------------------------------------------------------------------------------------------------------------------
+
+def check_energy(data):
+    return 1/2*(np.sum(np.sum(data.U**2)) + np.sum(np.sum(data.V**2)))
