@@ -4,14 +4,14 @@ import scipy.sparse.linalg as spala
 from functions import *
 from data_processing import *
 
-def simulation(const, bc, obj, LP, data):
+def simulation(const, bc, obj, LP, data, situation):
     counter = 0
     data.kin_energy = []
     while True:
         counter += 1
         simulation_step(const, bc, obj, LP, data)
         data.kin_energy = np.append(data.kin_energy, check_energy(data))
-        
+                
         if counter == 1:
             print('Iteration number: ' + str(counter))
             plot_system(const, bc , LP, data, False)
@@ -31,6 +31,9 @@ def simulation(const, bc, obj, LP, data):
             plot_system(const, bc , LP, data, False)
             print('Maximum number of iterations (' + str(counter) + ') has been reached.')
             return data
+        
+        #bc = update_BC(const, bc, data)
+        
             
 def is_stable(counter): # NEEDS TO BE DEFINED
     return False
@@ -81,15 +84,15 @@ def simulation_step(const, bc, obj, LP, data):
     
     # Implicit viscosity 
     if const.cholesky:
-        u = LP.Lu_factor(np.reshape(data.U + const.Ubc,(-1,), order='F')) 
+        u = LP.Lu_factor(np.reshape(data.U + bc.Ubc,(-1,), order='F')) 
     else:
-        u = spala.spsolve(LP.Lu, np.reshape(data.U + const.Ubc,(-1,), order='F'))
+        u = spala.spsolve(LP.Lu, np.reshape(data.U + bc.Ubc,(-1,), order='F'))
     data.U = np.reshape(u,(const.nx-1, const.ny), order='F')
     
     if const.cholesky:
-        v = LP.Lv_factor(np.reshape(data.V + const.Vbc,(-1,), order='F')) 
+        v = LP.Lv_factor(np.reshape(data.V + bc.Vbc,(-1,), order='F')) 
     else:
-        v = spala.spsolve(LP.Lv, np.reshape(data.V + const.Vbc,(-1,), order='F'))
+        v = spala.spsolve(LP.Lv, np.reshape(data.V + bc.Vbc,(-1,), order='F'))
     data.V = np.reshape(v,(const.nx, const.ny-1), order='F')
       
     if obj.sort != None:

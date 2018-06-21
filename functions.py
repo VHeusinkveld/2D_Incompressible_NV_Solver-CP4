@@ -231,14 +231,14 @@ def set_BM(const, bc):
         floats defining in- and outflow speed of fluid
           
     """
-    Ubc = const.dt/const.Re*(
+    bc.Ubc = const.dt/const.Re*(
         (np.vstack(
             (2*bc.uS[1:-1], np.zeros((const.nx-1,const.ny-2), dtype=float).T, 2*bc.uN[1:-1])).T
         )/const.hx**2 +
         np.vstack(
             (bc.uW, np.zeros((const.nx-3, const.ny), dtype=float), bc.uE)
         )/const.hy**2 )
-    Vbc = const.dt/const.Re*(
+    bc.Vbc = const.dt/const.Re*(
         (np.vstack(
             (bc.vS, np.zeros((const.nx,const.ny-3), dtype = float).T, bc.vN)).T
         )/const.hx**2 + 
@@ -246,8 +246,24 @@ def set_BM(const, bc):
             (2*bc.vW[1:-1], np.zeros((const.nx-2, const.ny-1), dtype=float), 2*bc.vE[1:-1])
         )/const.hy**2 )
 
-    return Ubc, Vbc
+    return bc
 
+def update_BC(const, bc, data):
+    # Calculate mean velocity at end of flow for horizontal tube (Only functional if object far from boundary)
+    #U_meanE = np.mean(data.U[-1,:])
+    
+    bc.uN = np.append( np.append(bc.uW[0], data.U[:,-1]), data.U[-1,-1] )
+    bc.uE = data.U[-1,:]
+    bc.uS = np.append( np.append(bc.uW[-1], data.U[:,0]), data.U[-1,0] )
+    
+    bc.vN = data.V[:,-1]
+    bc.vS = data.V[:,0]
+    bc.vE = np.append( np.append(bc.vS[-1], data.V[-1,:]), bc.vN[-1] )
+    
+    bc = set_BM(const, bc)
+    
+    return bc
+    
 # -----------------------------------------------------------------------------------------------------------------------
 # Developer functions
 # -----------------------------------------------------------------------------------------------------------------------
