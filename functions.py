@@ -145,7 +145,7 @@ def laplace_m(n, h, boundary_condition):
     # Compressed sparse column (CSC) format needed for Cholensky decomposition
     L = spa.diags([Lu, Lm, Ld], offsets=[1,0,-1], format="csc")/h**2
     return L
-
+'''
 def set_BC(const, bc, situation):
     """
     Sets the boundary conditions within the system. *ONLY 'lid' IS CURRENTLY FUNCTIONAL!!!*
@@ -213,7 +213,7 @@ def set_BC(const, bc, situation):
         bc.vE = const.y*0
         
     return bc
-
+'''
 def set_BM(const, bc):
     """
     Sets the boundary matrices of the system.
@@ -247,7 +247,7 @@ def set_BM(const, bc):
         )/const.hy**2 )
 
     return bc
-
+'''
 def update_BC(const, bc, data):
     # Calculate mean velocity at end of flow for horizontal tube (Only functional if object far from boundary)
     #U_meanE = np.mean(data.U[-1,:])
@@ -263,7 +263,42 @@ def update_BC(const, bc, data):
     bc = set_BM(const, bc)
     
     return bc
+'''
+def set_BC(const, bc, situation):
+    bc.uN = const.x*0
+    bc.uE = ave(const.y, 'h')*0 
+    bc.uS = const.x*0
+    bc.uW = ave(const.y, 'h')*0
+
+    bc.vN = ave(const.x, 'h')*0 
+    bc.vW = const.y*0
+    bc.vS = ave(const.x, 'h')*0
+    bc.vE = const.y*0
     
+    return bc
+
+def apply_forcing(const, bc, data):
+    data.U = data.U + const.velocity # Exclude object area
+    bc.uN = bc.uN + const.velocity
+    bc.uS = bc.uS + const.velocity
+    
+    return bc, data
+
+def update_BC(const, bc, data):
+    bc.uW = bc.uE
+    bc.uE = data.U[-1,:]
+    
+    bc = set_BM(const, bc)
+    
+    '''
+    bc.vN = data.V[:,-1]
+    bc.vS = data.V[:,0]
+    
+    bc.vW = bc.vE
+    bc.vE = np.append( np.append(bc.vS[-1], data.V[-1,:]), bc.vN[-1] )
+    '''
+    
+    return bc
 # -----------------------------------------------------------------------------------------------------------------------
 # Developer functions
 # -----------------------------------------------------------------------------------------------------------------------

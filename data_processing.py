@@ -12,9 +12,11 @@ def plot_system(const, bc, obj, LP, data, SAVE):
     plt.contourf(const.X_ave, const.Y_ave, data.P.T, 50, cmap='bwr')      
     plt.colorbar()
 
+    
     ## Flow 
     q_diff = (np.diff(data.U, n=1, axis=1)/const.hy-np.diff(data.V, n=1, axis=0)/const.hx)
-    q_diff = q_diff*(obj.Qgrid==0)
+    if obj.sort != None:
+        q_diff = q_diff*(obj.Qgrid==0)
     rhs = np.reshape(q_diff,(-1,), order='F')/const.dt
     if const.cholesky:
         q = LP.Lq_factor(rhs) 
@@ -23,6 +25,7 @@ def plot_system(const, bc, obj, LP, data, SAVE):
     Q = np.zeros((const.nx+1,const.ny+1), dtype=float)
     Q[1:-1,1:-1] = np.reshape((q),(const.nx-1,const.ny-1), order='F')
     plt.contour(const.x, const.y, np.abs(Q.T), 10, linewidths=1) #colors='k',
+    
 
     ## Velocity
     Ue = ave(np.vstack((bc.uW, data.U, bc.uE)).T, 'v')

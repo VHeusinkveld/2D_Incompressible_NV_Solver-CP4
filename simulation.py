@@ -8,7 +8,10 @@ def simulation(const, bc, obj, LP, data, situation):
     counter = 0
     data.kin_energy = []
     while True:
+        print(counter)
         counter += 1
+        bc, data = apply_forcing(const, bc, data)
+        bc = update_BC(const, bc, data)
         simulation_step(const, bc, obj, LP, data)
         data.kin_energy = np.append(data.kin_energy, check_energy(data))
                 
@@ -32,6 +35,7 @@ def simulation(const, bc, obj, LP, data, situation):
             print('Maximum number of iterations (' + str(counter) + ') has been reached.')
             return data
         
+        #bc, data = apply_forcing(const, bc, data)
         #bc = update_BC(const, bc, data)
         
             
