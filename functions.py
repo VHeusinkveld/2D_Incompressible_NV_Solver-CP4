@@ -252,9 +252,9 @@ def update_BC(const, bc, data):
     # Calculate mean velocity at end of flow for horizontal tube (Only functional if object far from boundary)
     #U_meanE = np.mean(data.U[-1,:])
     
-    bc.uN = np.append( np.append(bc.uW[0], data.U[:,-1]), data.U[-1,-1] )
+    bc.uN = np.append( np.append(bc.uW[-1], data.U[:,-1]), data.U[-1,-1] )
     bc.uE = data.U[-1,:]
-    bc.uS = np.append( np.append(bc.uW[-1], data.U[:,0]), data.U[-1,0] )
+    bc.uS = np.append( np.append(bc.uW[0], data.U[:,0]), data.U[-1,0] )
     
     bc.vN = data.V[:,-1]
     bc.vS = data.V[:,0]

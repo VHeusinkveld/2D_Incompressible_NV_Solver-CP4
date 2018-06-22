@@ -14,21 +14,21 @@ def simulation(const, bc, obj, LP, data, situation):
                 
         if counter == 1:
             print('Iteration number: ' + str(counter))
-            plot_system(const, bc , LP, data, False)
+            plot_system(const, bc, obj, LP, data, False)
         
         equilibrium = is_stable(counter)
         
         if equilibrium:
             print('Iteration number: ' + str(counter))
-            plot_system(const, bc , LP, data, False)
+            plot_system(const, bc, obj, LP, data, False)
             print('Equilibrium has been reached after ' + str(counter) + ' iterations.')
             return data
         if counter%const.nsteps == 0:
             print('Iteration number: ' + str(counter))
-            plot_system(const, bc , LP, data, False)
+            plot_system(const, bc, obj, LP, data, False)
         if counter == np.ceil(const.tf/const.dt):
             print('Iteration number: ' + str(counter))
-            plot_system(const, bc , LP, data, False)
+            plot_system(const, bc, obj, LP, data, False)
             print('Maximum number of iterations (' + str(counter) + ') has been reached.')
             return data
         
