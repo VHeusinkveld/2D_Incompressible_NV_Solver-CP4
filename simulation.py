@@ -6,32 +6,34 @@ from data_processing import *
 
 def simulation(const, bc, obj, LP, data, situation):
     counter = 0
+    data.fig_counter = 0
     data.kin_energy = []
     while True:
-        print(counter)
         counter += 1
-        bc, data = apply_forcing(const, bc, data)
-        bc = update_BC(const, bc, data)
+        #bc, data = apply_forcing(const, bc, data)
+        #bc = update_BC(const, bc, data)
         simulation_step(const, bc, obj, LP, data)
         data.kin_energy = np.append(data.kin_energy, check_energy(data))
                 
         if counter == 1:
             print('Iteration number: ' + str(counter))
-            plot_system(const, bc, obj, LP, data, False)
+            plot_system(const, bc, obj, LP, data)
         
         equilibrium = is_stable(counter)
         
         if equilibrium:
             print('Iteration number: ' + str(counter))
-            plot_system(const, bc, obj, LP, data, False)
+            plot_system(const, bc, obj, LP, data)
             print('Equilibrium has been reached after ' + str(counter) + ' iterations.')
             return data
         if counter%const.nsteps == 0:
-            print('Iteration number: ' + str(counter))
-            plot_system(const, bc, obj, LP, data, False)
+            if counter%50 == 0:
+                print('Iteration number: ' + str(counter))
+            plot_system(const, bc, obj, LP, data)
         if counter == np.ceil(const.tf/const.dt):
             print('Iteration number: ' + str(counter))
-            plot_system(const, bc, obj, LP, data, False)
+            const.save_fig = False
+            plot_system(const, bc, obj, LP, data)
             print('Maximum number of iterations (' + str(counter) + ') has been reached.')
             return data
         

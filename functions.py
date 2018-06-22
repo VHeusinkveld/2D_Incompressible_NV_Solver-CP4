@@ -145,7 +145,7 @@ def laplace_m(n, h, boundary_condition):
     # Compressed sparse column (CSC) format needed for Cholensky decomposition
     L = spa.diags([Lu, Lm, Ld], offsets=[1,0,-1], format="csc")/h**2
     return L
-'''
+
 def set_BC(const, bc, situation):
     """
     Sets the boundary conditions within the system. *ONLY 'lid' IS CURRENTLY FUNCTIONAL!!!*
@@ -180,9 +180,9 @@ def set_BC(const, bc, situation):
         bc.vE = const.y*0
         
     elif situation == 'horizontal_tube':
-        bc.uN = const.x*0 + velocity
+        bc.uN = const.x*0 #+ velocity
         bc.uE = ave(const.y, 'h')*0 + velocity 
-        bc.uS = const.x*0 + velocity
+        bc.uS = const.x*0 #+ velocity
         bc.uW = ave(const.y, 'h')*0 + velocity
 
         bc.vN = ave(const.x, 'h')*0 
@@ -200,6 +200,17 @@ def set_BC(const, bc, situation):
         bc.vW = const.y*0 + velocity
         bc.vS = ave(const.x, 'h')*0 + velocity
         bc.vE = const.y*0 + velocity
+
+    elif situation == 'horizontal_sea':
+        bc.uN = const.x*0 + velocity
+        bc.uE = ave(const.y, 'h')*0 + velocity 
+        bc.uS = const.x*0 + velocity
+        bc.uW = ave(const.y, 'h')*0 + velocity
+
+        bc.vN = ave(const.x, 'h')*0 
+        bc.vW = const.y*0
+        bc.vS = ave(const.x, 'h')*0
+        bc.vE = const.y*0
         
     elif situation == 'airfoil':
         bc.uN = const.x*0
@@ -213,7 +224,8 @@ def set_BC(const, bc, situation):
         bc.vE = const.y*0
         
     return bc
-'''
+
+
 def set_BM(const, bc):
     """
     Sets the boundary matrices of the system.
@@ -247,6 +259,7 @@ def set_BM(const, bc):
         )/const.hy**2 )
 
     return bc
+
 '''
 def update_BC(const, bc, data):
     # Calculate mean velocity at end of flow for horizontal tube (Only functional if object far from boundary)
@@ -264,6 +277,7 @@ def update_BC(const, bc, data):
     
     return bc
 '''
+'''
 def set_BC(const, bc, situation):
     bc.uN = const.x*0
     bc.uE = ave(const.y, 'h')*0 
@@ -276,7 +290,7 @@ def set_BC(const, bc, situation):
     bc.vE = const.y*0
     
     return bc
-
+'''
 def apply_forcing(const, bc, data):
     data.U = data.U + const.velocity # Exclude object area
     bc.uN = bc.uN + const.velocity
