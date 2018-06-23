@@ -181,9 +181,9 @@ def set_BC(const, bc, situation):
         
     elif situation == 'horizontal_tube':
         bc.uN = const.x*0 #+ velocity
-        bc.uE = ave(const.y, 'h')*0 + velocity 
+        bc.uE = ave(const.y, 'h')*0 #+ velocity 
         bc.uS = const.x*0 #+ velocity
-        bc.uW = ave(const.y, 'h')*0 + velocity
+        bc.uW = ave(const.y, 'h')*0 #+ velocity
 
         bc.vN = ave(const.x, 'h')*0 
         bc.vW = const.y*0
@@ -299,9 +299,15 @@ def apply_forcing(const, bc, data):
     return bc, data
 
 def update_BC(const, bc, data):
-    bc.uW = bc.uE
-    bc.uE = data.U[-1,:]
+    # Horizontal flow component
+    bc.uE = data.U[0,:]
+    bc.uW = data.U[-1,:]
     
+    # Vertical flow component
+    bc.vE = np.append( np.append(bc.vS[-1], data.V[0,:]), bc.vN[-1] )
+    bc.vW = np.append( np.append(bc.vS[0], data.V[-1,:]), bc.vN[0] )
+    
+    # Update Ubc and Vbc
     bc = set_BM(const, bc)
     
     '''

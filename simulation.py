@@ -10,8 +10,14 @@ def simulation(const, bc, obj, LP, data, situation):
     data.kin_energy = []
     while True:
         counter += 1
-        #bc, data = apply_forcing(const, bc, data)
-        #bc = update_BC(const, bc, data)
+        if counter == 1:
+            bc, data = apply_forcing(const, bc, data)
+            print('uN', bc.uN, 'uE', bc.uE, 'uW', bc.uW, 'uS', bc.uS)
+        #if counter%10 == 0:
+         #   bc, data = apply_forcing(const, bc, data)
+         #   bc = update_BC(const, bc, data)
+        else:
+            bc = update_BC(const, bc, data)
         simulation_step(const, bc, obj, LP, data)
         data.kin_energy = np.append(data.kin_energy, check_energy(data))
                 
