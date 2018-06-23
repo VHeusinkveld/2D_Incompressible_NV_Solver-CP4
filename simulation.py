@@ -10,15 +10,24 @@ def simulation(const, bc, obj, LP, data, situation):
     data.kin_energy = []
     while True:
         counter += 1
-        if counter == 1:
-            bc, data = apply_forcing(const, bc, data)
-            print('uN', bc.uN, 'uE', bc.uE, 'uW', bc.uW, 'uS', bc.uS)
+        #if counter == 1:
+            #bc, data = apply_forcing(const, bc, data)
+            #print('uN', bc.uN, 'uE', bc.uE, 'uW', bc.uW, 'uS', bc.uS)
+        #else:
+        #    bc = update_BC(const, bc, data)    
         #if counter%10 == 0:
          #   bc, data = apply_forcing(const, bc, data)
          #   bc = update_BC(const, bc, data)
-        else:
-            bc = update_BC(const, bc, data)
+
+        # Solving system for U, V and P
         simulation_step(const, bc, obj, LP, data)
+        
+        # Calculate pressure on object
+        data.obj_F = 0
+        
+        # Periodic BC update
+        bc = update_BC(const, bc, data) 
+        
         data.kin_energy = np.append(data.kin_energy, check_energy(data))
                 
         if counter == 1:
@@ -42,9 +51,6 @@ def simulation(const, bc, obj, LP, data, situation):
             plot_system(const, bc, obj, LP, data)
             print('Maximum number of iterations (' + str(counter) + ') has been reached.')
             return data
-        
-        #bc, data = apply_forcing(const, bc, data)
-        #bc = update_BC(const, bc, data)
         
             
 def is_stable(counter): # NEEDS TO BE DEFINED

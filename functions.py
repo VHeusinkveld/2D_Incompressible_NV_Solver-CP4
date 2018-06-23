@@ -180,10 +180,10 @@ def set_BC(const, bc, situation):
         bc.vE = const.y*0
         
     elif situation == 'horizontal_tube':
-        bc.uN = const.x*0 #+ velocity
-        bc.uE = ave(const.y, 'h')*0 #+ velocity 
-        bc.uS = const.x*0 #+ velocity
-        bc.uW = ave(const.y, 'h')*0 #+ velocity
+        bc.uN = const.x*0 
+        bc.uE = ave(const.y, 'h')*0 + velocity 
+        bc.uS = const.x*0 
+        bc.uW = ave(const.y, 'h')*0 + velocity
 
         bc.vN = ave(const.x, 'h')*0 
         bc.vW = const.y*0
@@ -327,6 +327,138 @@ def object_boundary(airfoil):
     roll_right = np.roll(airfoil, 1, 1)
     
     return np.where(roll_up + roll_down + roll_left + roll_right - 4*airfoil > 0)
+
+def laplace_obj(const, LP, obj):
+    """WIP 
+    Function expects object grids, and LP. Based on the grids LP gets modified
+    such that nothing flows into the object or out of it. 
+    """
+    if obj.sort != None:
+        lp_row = const.nx
+        lq_row = const.nx-1
+        lu_row = const.nx-1
+        lv_row = const.nx 
+
+        x_factor = (const.dt / const.Re)/const.hx**2
+        y_factor = (const.dt / const.Re)/const.hy**2   
+
+        # Object in Lp 
+        for obj_col, obj_row in np.transpose(obj.coord_P):
+            m_start = obj_row*lp_row
+
+            obj_n = m_start+obj_col
+            obj_m = m_start+obj_col
+            
+            ## Takes care of 0 seting in Laplace            
+            LP.Lp[obj_n+1, obj_m] = 0
+            LP.Lp[obj_n-1, obj_m] = 0            
+            
+            LP.Lp[obj_n, obj_m-1] = 0
+            LP.Lp[obj_n, obj_m+1] = 0
+            
+            LP.Lp[obj_n, obj_m-lp_row] = 0
+            LP.Lp[obj_n, obj_m+lp_row] = 0
+            
+            LP.Lp[obj_n-lp_row, obj_m] = 0
+            LP.Lp[obj_n+lp_row, obj_m] = 0
+            
+            ## Make matrix again postitive definite 
+            ## Horizontal neighbours  
+            LP.Lp[obj_n-1, obj_m-1] = LP.Lp[obj_n-1, obj_m-1] - 1
+            LP.Lp[obj_n+1, obj_m+1] = LP.Lp[obj_n+1, obj_m+1] - 1
+            ## Vertical neighbours 
+            LP.Lp[obj_n-lp_row, obj_m-lp_row] = LP.Lp[obj_n-lp_row, obj_m-lp_row] - 1
+            LP.Lp[obj_n+lp_row, obj_m+lp_row] = LP.Lp[obj_n+lp_row, obj_m+lp_row] - 1 
+            
+        # Object in Lq
+        for obj_col, obj_row in np.transpose(obj.coord_P):
+            m_start = obj_row*lq_row
+
+            obj_n = m_start+obj_col
+            obj_m = m_start+obj_col
+            
+            ## Takes care of 0 seting in Laplace            
+            LP.Lq[obj_n+1, obj_m] = 0
+            LP.Lq[obj_n-1, obj_m] = 0            
+            
+            LP.Lq[obj_n, obj_m-1] = 0
+            LP.Lq[obj_n, obj_m+1] = 0
+            
+            LP.Lq[obj_n, obj_m-lq_row] = 0
+            LP.Lq[obj_n, obj_m+lq_row] = 0
+            
+            LP.Lq[obj_n-lq_row, obj_m] = 0
+            LP.Lq[obj_n+lq_row, obj_m] = 0
+            
+            ## Make matrix again postitive definite 
+            ## Horizontal neighbours  
+            LP.Lq[obj_n-1, obj_m-1] = LP.Lq[obj_n-1, obj_m-1] - 1
+            LP.Lq[obj_n+1, obj_m+1] = LP.Lq[obj_n+1, obj_m+1] - 1
+            ## Vertical neighbours 
+            LP.Lq[obj_n-lq_row, obj_m-lq_row] = LP.Lp[obj_n-lq_row, obj_m-lq_row] - 1
+            LP.Lq[obj_n+lq_row, obj_m+lq_row] = LP.Lp[obj_n+lq_row, obj_m+lq_row] - 1    
+
+        # Object in Lu
+        for obj_col, obj_row in np.transpose(obj.coord_U):
+            m_start = obj_row*lu_row
+
+            obj_n = m_start+obj_col
+            obj_m = m_start+obj_col
+            
+            ## Takes care of 0 seting in Laplace            
+            LP.Lu[obj_n+1, obj_m] = 0
+            LP.Lu[obj_n-1, obj_m] = 0            
+            
+            LP.Lu[obj_n, obj_m-1] = 0
+            LP.Lu[obj_n, obj_m+1] = 0
+            
+            LP.Lu[obj_n, obj_m-lu_row] = 0
+            LP.Lu[obj_n, obj_m+lu_row] = 0
+            
+            LP.Lu[obj_n-lu_row, obj_m] = 0
+            LP.Lu[obj_n+lu_row, obj_m] = 0
+            
+            ## Make matrix again postitive definite 
+            ## Horizontal neighbours 
+            #LP.Lu[obj_n-1, obj_m-1] = LP.Lu[obj_n-1, obj_m-1] - x_factor
+            #LP.Lu[obj_n+1, obj_m+1] = LP.Lu[obj_n+1, obj_m+1] - x_factor
+            
+            ## Vertical neighbours 
+            #LP.Lu[obj_n-lu_row, obj_m-lu_row] = LP.Lu[obj_n-lu_row, obj_m-lu_row] - y_factor
+            #LP.Lu[obj_n+lu_row, obj_m+lu_row] = LP.Lu[obj_n+lu_row, obj_m+lu_row] - y_factor  
+
+        # Object in Lv
+        for obj_col, obj_row in np.transpose(obj.coord_V):
+            m_start = obj_row*lv_row
+
+            obj_n = m_start+obj_col
+            obj_m = m_start+obj_col
+            
+            ## Takes care of 0 seting in Laplace            
+            LP.Lv[obj_n+1, obj_m] = 0
+            LP.Lv[obj_n-1, obj_m] = 0            
+            
+            LP.Lv[obj_n, obj_m-1] = 0
+            LP.Lv[obj_n, obj_m+1] = 0
+            
+            LP.Lv[obj_n, obj_m-lv_row] = 0
+            LP.Lv[obj_n, obj_m+lv_row] = 0
+            
+            LP.Lv[obj_n-lv_row, obj_m] = 0
+            LP.Lv[obj_n+lv_row, obj_m] = 0    
+            
+            ## Make matrix again postitive definite 
+            ## Horizontal neighbours
+            #LP.Lv[obj_n-1, obj_m-1] = LP.Lv[obj_n-1, obj_m-1] - x_factor
+            #LP.Lv[obj_n+1, obj_m+1] = LP.Lv[obj_n+1, obj_m+1] - x_factor
+            ## Vertical neighbours 
+            #LP.Lv[obj_n-lv_row, obj_m-lv_row] = LP.Lv[obj_n-lv_row, obj_m-lv_row] - y_factor
+            #LP.Lv[obj_n+lv_row, obj_m+lv_row] = LP.Lv[obj_n+lv_row, obj_m+lv_row] - y_factor
+    
+    return LP
+
+
+
 # -----------------------------------------------------------------------------------------------------------------------
 # Developer functions
 # -----------------------------------------------------------------------------------------------------------------------
