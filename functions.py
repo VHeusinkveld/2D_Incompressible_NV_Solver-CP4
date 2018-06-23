@@ -1,6 +1,8 @@
 import numpy as np
+import scipy as sci
 import scipy.sparse as spa
-import matplotlib.pyplot as plt 
+import matplotlib.pyplot as plt
+import math
 
 from sksparse.cholmod import cholesky
 from types import SimpleNamespace
@@ -320,13 +322,28 @@ def update_BC(const, bc, data):
     
     return bc
 
-def object_boundary(airfoil):
-    roll_up = np.roll(airfoil, -1, 0)
-    roll_down = np.roll(airfoil, 1, 0)
+def object_boundary(obj):
+    airfoil = obj.cgrid.T*1
+    roll_down = np.roll(airfoil, -1, 0)
+    roll_up = np.roll(airfoil, 1, 0)
     roll_left = np.roll(airfoil, -1, 1)
     roll_right = np.roll(airfoil, 1, 1)
     
-    return np.where(roll_up + roll_down + roll_left + roll_right - 4*airfoil > 0)
+    bottom = (roll_down - airfoil).T
+    obj.bbound = np.where(bottom == 1)
+
+    top = (roll_up - airfoil).T
+    obj.tbound = np.where(top == 1)
+
+    left = (roll_left - airfoil).T
+    obj.lbound = np.where(left == 1)
+
+    right = (roll_right - airfoil).T
+    obj.rbound = np.where(right == 1)
+    
+    obj.bound = np.where((roll_up + roll_down + roll_left + roll_right - 4*airfoil).T > 0)
+    
+    return obj
 
 def laplace_obj(const, LP, obj):
     """WIP 
@@ -458,6 +475,73 @@ def laplace_obj(const, LP, obj):
     return LP
 
 
+def creat_obj(const, obj):
+    
+    if obj.sort == 'circle':
+        # Circular object
+        scale = 1/4
+        factorxy = 1 #const.lx/const.ly # Now the object is not scaled with the box ratio
+        R = const.lx*scale/4
+        cx, cy = const.lx/2, const.ly/2
+
+        # Object for a centered grid
+        ## Should have shape (nx, ny)
+        obj.cgrid = ((const.X_ave-cx)**2 + (factorxy*const.Y_ave-factorxy*cy)**2 <= R**2).T
+    
+    
+    if obj.sort == 'hemicircle':
+        scale = 1/3
+        factorxy = 1 #const.lx/const.ly # Now the object is not scaled with the box ratio
+        R= const.lx*scale/4 # Radius of object
+        cx, cy = const.lx/2, const.ly/2 # Centre of object
+
+        fraction = 1
+        translation_c = R*(1-fraction)
+        theta = 70
+        theta = math.radians(theta)
+
+        obj.cgrid = (((const.X_ave-cx)**2 + (factorxy*const.Y_ave-factorxy*cy)**2 <= R**2)*(-(const.Y_ave - (cy + translation_c))*math.tan(theta) <= const.X_ave - (cx + translation_c))).T
+        
+    
+    if obj.sort != None:
+        # Translate to P, U and V grid 
+        obj.Pgrid = np.zeros((const.nx, const.ny), dtype=float)
+        obj.Ugrid = np.zeros((const.nx-1, const.ny), dtype=float)
+        obj.Vgrid = np.zeros((const.nx, const.ny-1), dtype=float)
+        obj.Qgrid = np.zeros((const.nx-1, const.ny-1), dtype=float)
+
+        # P can center grid have a one to one correspondance
+        obj.Pgrid[:,:] = obj.cgrid
+    
+        # Q grid is a shifted by one P grid
+        obj.Qgrid[:,:] = (obj.Pgrid[:-1,:-1] + np.roll(obj.Pgrid[:-1,:-1], -1, axis = 0)) > 0
+        obj.Qgrid[:,:] = (obj.Qgrid[:,:] + \
+                              np.roll(obj.Qgrid[:,:], -1, axis = 1)) > 0
+        
+        # Create a 1 layer mesh around the center grid in vertical direction
+        obj.Ugrid[:,:] = (obj.Pgrid[:-1,:] + np.roll(obj.Pgrid[:-1,:], -1, axis = 0) ) > 0
+        obj.Ugrid[:,:] = (obj.Ugrid[:,:] + \
+                              np.roll(obj.Ugrid[:,:], -1, axis = 1) + \
+                              np.roll(obj.Ugrid[:,:], 1, axis = 1)) > 0
+        
+        # Create a 1 layer mesh around the center grid in horizontal direction
+        obj.Vgrid[:,:] = (obj.Pgrid[:,:-1] + np.roll(obj.Pgrid[:,:-1], -1, axis = 1) ) > 0
+        obj.Vgrid[:,:] = (obj.Vgrid[:,:] + \
+                              np.roll(obj.Vgrid[:,:], -1, axis = 0) + \
+                              np.roll(obj.Vgrid[:,:], 1, axis = 0)) > 0
+    
+        # These need to have the form:
+        # np.array([x-values], [y-values])
+        # ex: np.array([3, 4, 5, 9], [1, 2, 9, 5])
+        obj.coord_P = np.where(obj.Pgrid == np.max(obj.Pgrid))
+        obj.coord_U = np.where(obj.Ugrid == np.max(obj.Ugrid))
+        obj.coord_V = np.where(obj.Vgrid == np.max(obj.Vgrid))
+        obj.coord_Q = np.where(obj.Qgrid == np.max(obj.Qgrid))
+    
+    # Identify the boundaries of the object
+    obj = object_boundary(obj)
+    
+    return obj
 
 # -----------------------------------------------------------------------------------------------------------------------
 # Developer functions
