@@ -491,7 +491,7 @@ def creat_obj(const, obj):
     
     if obj.sort == 'hemicircle':
         scale = 1/3
-        factorxy = 1 #const.lx/const.ly # Now the object is not scaled with the box ratio
+        factorxy = 2 #const.lx/const.ly # Now the object is not scaled with the box ratio
         R= const.lx*scale/4 # Radius of object
         cx, cy = const.lx/2, const.ly/2 # Centre of object
 
@@ -542,7 +542,17 @@ def creat_obj(const, obj):
     obj = object_boundary(obj)
     
     return obj
+def obj_force(const, obj, data):  
+    force = 0
+    dx = const.lx/const.nx
+    # Calculate pressure on object
+    for n, m in np.transpose(obj.tbound):
+        force -= data.P[n,m]*dx
+    
+    for n, m in np.transpose(obj.bbound):    
+        force += data.P[n,m]*dx
 
+    return force
 # -----------------------------------------------------------------------------------------------------------------------
 # Developer functions
 # -----------------------------------------------------------------------------------------------------------------------

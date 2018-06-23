@@ -22,9 +22,6 @@ def simulation(const, bc, obj, LP, data, situation):
         # Solving system for U, V and P
         simulation_step(const, bc, obj, LP, data)
         
-        # Calculate pressure on object
-        data.obj_F = 0
-        
         # Periodic BC update
         bc = update_BC(const, bc, data) 
         
@@ -32,7 +29,7 @@ def simulation(const, bc, obj, LP, data, situation):
                 
         if counter == 1:
             print('Iteration number: ' + str(counter))
-            plot_system(const, bc, obj, LP, data)
+            #plot_system(const, bc, obj, LP, data)
         
         equilibrium = is_stable(counter)
         
@@ -47,6 +44,10 @@ def simulation(const, bc, obj, LP, data, situation):
             plot_system(const, bc, obj, LP, data)
         if counter == np.ceil(const.tf/const.dt):
             print('Iteration number: ' + str(counter))
+            
+            # Calculate force on object
+            data.obj_F = obj_force(const, obj, data)
+            
             const.save_fig = False
             plot_system(const, bc, obj, LP, data)
             print('Maximum number of iterations (' + str(counter) + ') has been reached.')
