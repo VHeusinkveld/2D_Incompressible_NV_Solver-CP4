@@ -313,6 +313,14 @@ def update_BC(const, bc, data):
     '''
     
     return bc
+
+def object_boundary(airfoil):
+    roll_up = np.roll(airfoil, -1, 0)
+    roll_down = np.roll(airfoil, 1, 0)
+    roll_left = np.roll(airfoil, -1, 1)
+    roll_right = np.roll(airfoil, 1, 1)
+    
+    return np.where(roll_up + roll_down + roll_left + roll_right - 4*airfoil > 0)
 # -----------------------------------------------------------------------------------------------------------------------
 # Developer functions
 # -----------------------------------------------------------------------------------------------------------------------
