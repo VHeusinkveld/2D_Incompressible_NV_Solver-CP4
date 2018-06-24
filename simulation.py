@@ -29,7 +29,7 @@ def simulation(const, bc, obj, LP, data, situation):
                 
         if counter == 1:
             print('Iteration number: ' + str(counter))
-            #plot_system(const, bc, obj, LP, data)
+            plot_system(const, bc, obj, LP, data)
         
         equilibrium = is_stable(counter)
         

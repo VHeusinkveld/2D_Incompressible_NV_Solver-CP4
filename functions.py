@@ -502,7 +502,69 @@ def creat_obj(const, obj):
 
         obj.cgrid = (((const.X_ave-cx)**2 + (factorxy*const.Y_ave-factorxy*cy)**2 <= R**2)*(-(const.Y_ave - (cy + translation_c))*math.tan(theta) <= const.X_ave - (cx + translation_c))).T
         
-    
+    if obj.sort == 'naca':
+        scale = 2
+        theta = -obj.angle/360*2*np.pi
+
+        x = const.x
+        y = const.y
+
+        data_start = int(np.floor((len(x)/2 - len(y)/2)))
+        data_end = int(np.floor(data_start + len(y)))
+
+        x = x[data_start:data_end]
+
+        cxgrid = 0.5*const.lx
+        cygrid = 0.5*const.ly
+
+        xr = x - cxgrid
+        yr = y - cygrid
+
+
+        length = (np.max(x) - np.min(x))/scale
+        xr = xr*np.cos(theta) - yr*np.sin(theta)
+        lox = (np.max(xr) - np.min(xr))/scale
+
+        cx = 0.5/scale
+        cy = 0
+
+        dx = const.lx/const.nx
+        dy = const.ly/const.ny
+
+        obj_nx = int(np.round(lox/dx))
+        obj_x = np.linspace(0, 1, obj_nx + 1)
+
+        [xn, yn] = naca4(obj.profile, obj_x, finite_TE = False)
+        xn, yn = np.array(xn), np.array(yn)
+        xn = (xn*length - cx)
+        yn =  yn/scale
+        
+        xnr = xn*np.cos(theta) - yn*np.sin(theta)
+        ynr = xn*np.sin(theta) + yn*np.cos(theta)
+
+        xnr = np.round((xnr + cxgrid)/dx)
+        ynr = np.round((ynr + cygrid)/dy)
+
+        obj.cgrid = np.zeros((const.ny, const.nx), dtype=float)
+
+        for i in range(len(xnr)):
+            x = int(xnr[i])
+            y = int(ynr[i])
+
+            obj.cgrid[y, x] = 1
+
+        for i in range(len(xnr)):
+            x = int(xnr[i])
+            bt = []
+            for j in range(len(obj.cgrid[:, x])):
+                if obj.cgrid[j, x] == 1:
+                    bt.append(j)
+            if len(bt) > 1:
+                obj.cgrid[bt[0]:bt[1], x] = 1
+
+        obj.cgrid = obj.cgrid + np.roll(obj.cgrid, -1, 1) > 0   
+        obj.cgrid = obj.cgrid.T
+        
     if obj.sort != None:
         # Translate to P, U and V grid 
         obj.Pgrid = np.zeros((const.nx, const.ny), dtype=float)
@@ -538,8 +600,8 @@ def creat_obj(const, obj):
         obj.coord_V = np.where(obj.Vgrid == np.max(obj.Vgrid))
         obj.coord_Q = np.where(obj.Qgrid == np.max(obj.Qgrid))
     
-    # Identify the boundaries of the object
-    obj = object_boundary(obj)
+        # Identify the boundaries of the object
+        obj = object_boundary(obj)
     
     return obj
 def obj_force(const, obj, data):  
@@ -553,6 +615,71 @@ def obj_force(const, obj, data):
         force += data.P[n,m]*dx
 
     return force
+
+from math import cos, sin, tan
+from math import atan
+from math import pi
+from math import pow
+from math import sqrt
+
+def naca4(number, x, finite_TE = False):
+    """
+    Returns 2*n+1 points in [0 1] for the given 4 digit NACA number string
+
+    """
+    m = float(number[0])/100.0
+    p = float(number[1])/10.0
+    t = float(number[2:])/100.0
+
+    a0 = +0.2969
+    a1 = -0.1260
+    a2 = -0.3516
+    a3 = +0.2843
+
+    if finite_TE:
+        a4 = -0.1015 # For finite thick TE
+    else:
+        a4 = -0.1036 # For zero thick TE
+
+
+    yt = [5*t*(a0*sqrt(xx)+a1*xx+a2*pow(xx,2)+a3*pow(xx,3)+a4*pow(xx,4)) for xx in x]
+
+    xc1 = [xx for xx in x if xx <= p]
+    xc2 = [xx for xx in x if xx > p]
+
+    if p == 0:
+        xu = x
+        yu = yt
+
+        xl = x
+        yl = [-xx for xx in yt]
+
+        xc = xc1 + xc2
+        zc = [0]*len(xc)
+    else:
+        yc1 = [m/pow(p,2)*xx*(2*p-xx) for xx in xc1]
+        yc2 = [m/pow(1-p,2)*(1-2*p+xx)*(1-xx) for xx in xc2]
+
+        zc = yc1 + yc2
+
+        dyc1_dx = [m/pow(p,2)*(2*p-2*xx) for xx in xc1]
+        dyc2_dx = [m/pow(1-p,2)*(2*p-2*xx) for xx in xc2]
+        dyc_dx = dyc1_dx + dyc2_dx
+
+        theta = [atan(xx) for xx in dyc_dx]
+
+        xu = [xx - yy * sin(zz) for xx,yy,zz in zip(x,yt,theta)]
+        yu = [xx + yy * cos(zz) for xx,yy,zz in zip(zc,yt,theta)]
+
+        xl = [xx + yy * sin(zz) for xx,yy,zz in zip(x,yt,theta)]
+        yl = [xx - yy * cos(zz) for xx,yy,zz in zip(zc,yt,theta)]
+
+    X = xu[::-1] + xl[1:]
+    Z = yu[::-1] + yl[1:]
+
+    return X,Z
+
+
 # -----------------------------------------------------------------------------------------------------------------------
 # Developer functions
 # -----------------------------------------------------------------------------------------------------------------------
