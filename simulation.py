@@ -4,21 +4,34 @@ import scipy.sparse.linalg as spala
 from functions import *
 from data_processing import *
 
-def simulation(const, bc, obj, LP, data, situation):
+def simulation(const, bc, obj, LP, data):
+    """ Simulation of the 2D Navier-stokes equation
+    
+    Parameters
+    ----------
+    const : NameSpace
+        simulation constants
+    bc : NameSpace
+        all boundary condition related variables
+    obj : NameSpace
+        all object related variables
+    LP : NameSpace
+        all laplace operators of the system
+    data : NameSpace
+        empty
+        
+    Returns
+    -------
+    data : NameSpace
+        containing data arrays of all 'measured' quanities
+        
+    """
     counter = 0
     data.fig_counter = 0
     data.kin_energy = []
     while True:
         counter += 1
-        #if counter == 1:
-            #bc, data = apply_forcing(const, bc, data)
-            #print('uN', bc.uN, 'uE', bc.uE, 'uW', bc.uW, 'uS', bc.uS)
-        #else:
-        #    bc = update_BC(const, bc, data)    
-        #if counter%10 == 0:
-         #   bc, data = apply_forcing(const, bc, data)
-         #   bc = update_BC(const, bc, data)
-
+        
         # Solving system for U, V and P
         simulation_step(const, bc, obj, LP, data)
         
@@ -29,38 +42,47 @@ def simulation(const, bc, obj, LP, data, situation):
                 
         if counter == 1:
             print('Iteration number: ' + str(counter))
-            plot_system(const, bc, obj, LP, data)
+            #plot_system(const, bc, obj, LP, data)
         
-        equilibrium = is_stable(counter)
-        
-        if equilibrium:
-            print('Iteration number: ' + str(counter))
-            plot_system(const, bc, obj, LP, data)
-            print('Equilibrium has been reached after ' + str(counter) + ' iterations.')
-            return data
         if counter%const.nsteps == 0:
             if counter%50 == 0:
                 print('Iteration number: ' + str(counter))
-            plot_system(const, bc, obj, LP, data)
+            #plot_system(const, bc, obj, LP, data)
         if counter == np.ceil(const.tf/const.dt):
             print('Iteration number: ' + str(counter))
             
-            # Calculate force on object
-            data.obj_F = obj_force(const, obj, data)
+            if obj.sort =! None:
+                # Calculate force on object
+                data.obj_F = obj_force(const, obj, data)
             
             const.save_fig = False
-            plot_system(const, bc, obj, LP, data)
+            #plot_system(const, bc, obj, LP, data)
             print('Maximum number of iterations (' + str(counter) + ') has been reached.')
             return data
         
             
-def is_stable(counter): # NEEDS TO BE DEFINED
-    return False
-    #if counter == :
-        #return True
-    
-
 def simulation_step(const, bc, obj, LP, data):
+    """ Generates data for one iteration
+    
+    Parameters
+    ----------
+    const : NameSpace
+        simulation constants
+    bc : NameSpace
+        all boundary condition related variables
+    obj : NameSpace
+        all object related variables
+    LP : NameSpace
+        all laplace operators of the system
+    data : NameSpace
+        empty
+        
+    Returns
+    -------
+    data : NameSpace
+        containing data arrays of all 'measured' quanities after one iteration
+        
+    """
     # Non linear terms
     Ue = np.vstack((bc.uW, data.U, bc.uE)).T
     Ue = np.vstack((2*bc.uS-Ue[0,:], Ue ,2*bc.uN-Ue[-1,:])).T
