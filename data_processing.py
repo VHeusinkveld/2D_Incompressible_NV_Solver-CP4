@@ -5,6 +5,26 @@ import scipy.sparse.linalg as spala
 from functions import ave
 
 def plot_system(const, bc, obj, LP, data):
+    """ Simulation of the 2D Navier-stokes equation
+    
+    Parameters
+    ----------
+    const : NameSpace
+        simulation constants
+    bc : NameSpace
+        all boundary condition related variables
+    obj : NameSpace
+        all object related variables
+    LP : NameSpace
+        all laplace operators of the system
+    data : NameSpace
+        empty
+        
+    Returns
+    -------
+    plot of system
+        
+    """
     data.fig_counter += 1 
     fig = plt.figure(figsize=(const.lx*5, const.ly*5))
     
