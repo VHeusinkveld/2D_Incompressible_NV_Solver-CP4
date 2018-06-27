@@ -42,21 +42,21 @@ def simulation(const, bc, obj, LP, data):
                 
         if counter == 1:
             print('Iteration number: ' + str(counter))
-            #plot_system(const, bc, obj, LP, data)
+            plot_system(const, bc, obj, LP, data)
         
         if counter%const.nsteps == 0:
             if counter%50 == 0:
                 print('Iteration number: ' + str(counter))
-            #plot_system(const, bc, obj, LP, data)
+            plot_system(const, bc, obj, LP, data)
         if counter == np.ceil(const.tf/const.dt):
             print('Iteration number: ' + str(counter))
             
-            if obj.sort =! None:
+            if obj.sort != None:
                 # Calculate force on object
                 data.obj_F = obj_force(const, obj, data)
             
             const.save_fig = False
-            #plot_system(const, bc, obj, LP, data)
+            plot_system(const, bc, obj, LP, data)
             print('Maximum number of iterations (' + str(counter) + ') has been reached.')
             return data
         
