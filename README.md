@@ -5,8 +5,6 @@
 
 *Execute_simulation.ipynb*: Main file which executes the NS simulation. This contains the set-up of the simulation.
 
-*navier_stoke.ipynb*: 2D Navier-Stokes solver (FDM) (Initial script, will be removed soon)
-
 ---
 
 *constants.py*: Contains the constants of the system
