@@ -1,4 +1,6 @@
 # Navier-Stokes: NACA-profile objects in 2D flow
+[![Simulation result](https://img.youtube.com/vi/TGbapm781wk/0.jpg)](https://www.youtube.com/watch?v=TGbapm781wk)
+
 ## Structure
 
 *create_animation.ipynb*: Contains function for making a animation from premade figures
