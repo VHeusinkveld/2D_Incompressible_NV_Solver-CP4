@@ -1,0 +1,54 @@
+{
+  "case": "NACA 2412 at 30 degrees, 2D wake demonstration",
+  "settings": {
+    "nx": 400,
+    "ny": 160,
+    "lx": 20.0,
+    "ly": 8.0,
+    "dt": 0.005,
+    "tf": 40.0,
+    "Re": 150.0,
+    "velocity": 1.0,
+    "rho_arrow": 10,
+    "cholesky": true,
+    "nt": 8000
+  },
+  "chord": 2.0,
+  "profile": "2412",
+  "angle_degrees": 30.0,
+  "center": [
+    4.0,
+    4.0
+  ],
+  "reynolds_based_on_chord": 300.0,
+  "boundaries": "Fixed u=1, v=0 at all four outer boundaries; not periodic or a radiation outlet.",
+  "initial_condition": "Uniform u=1 outside the wing, v=0; no imposed perturbation; first step projects velocity.",
+  "geometry": "Staircase NACA 2412 on the pressure grid; normal wall velocity zero, tangential ghost velocity reflected.",
+  "interpretation": "Numerical demonstration, not a grid/domain-converged Strouhal or force benchmark. The distant fixed outlet can affect the late wake.",
+  "probe_xy": [
+    6.5,
+    4.4
+  ],
+  "frames": 401,
+  "max_abs_divergence_all_steps": 3.402970581104642e-10,
+  "max_cfl_all_steps": 0.48028344553715985,
+  "max_abs_net_boundary_flux_all_steps": 4.511826025635491e-17,
+  "max_abs_blocked_face_velocity_all_steps": 0.0,
+  "wall_seconds": 328.75356964499997,
+  "versions": {
+    "numpy": "2.3.5",
+    "scipy": "1.17.0",
+    "matplotlib": "3.10.8"
+  },
+  "source_sha256": {
+    "constants.py": "78d725759ff5f07ae960d363062de9d5fcc26037578418661a9b7ce2547c87d0",
+    "functions.py": "200f15d14b5bd5d93f1bdc669ea939e700c4e21a8ef806ba2a324b67f0a52710",
+    "operators.py": "36b9053cb4c867f6c9eda52d1567ba981ca6baf333971a3abc9d1ea6d9060234",
+    "simulation.py": "80c858908a2082c395a77602e5955d1778e7b66ab79246a2112c5b6cb2addd36",
+    "render_naca.py": "fef403884d5671221d7278d73f43563fa73b97d53ae858c145b509d126c51adb"
+  },
+  "video_fps": 24,
+  "video_duration_seconds": 16.708333333333332,
+  "video_codec": "H.264 / yuv420p",
+  "rendering_seconds": 21.29629667800009
+}

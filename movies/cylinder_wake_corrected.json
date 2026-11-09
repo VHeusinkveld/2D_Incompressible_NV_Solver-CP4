@@ -1,0 +1,52 @@
+{
+  "case": "Stationary cylinder, 2D laminar wake demonstration",
+  "settings": {
+    "nx": 400,
+    "ny": 160,
+    "lx": 20.0,
+    "ly": 8.0,
+    "dt": 0.005,
+    "tf": 60.0,
+    "Re": 150.0,
+    "velocity": 1.0,
+    "rho_arrow": 10,
+    "cholesky": true,
+    "nt": 12000
+  },
+  "diameter": 1.0,
+  "center": [
+    4.0,
+    4.0
+  ],
+  "reynolds_based_on_diameter": 150.0,
+  "boundaries": "Fixed u=1, v=0 at all four outer boundaries; not periodic or a radiation outlet.",
+  "initial_condition": "Uniform u=1 outside the cylinder, v=0; compact streamfunction seed of amplitude 0.02 at x=5..7, y=3..5; first step projects velocity.",
+  "geometry": "Staircase circle on the pressure grid; normal wall velocity zero, tangential ghost velocity reflected.",
+  "interpretation": "Numerical demonstration, not a grid/domain-converged Strouhal or force benchmark. The distant fixed outlet can affect the late wake.",
+  "probe_xy": [
+    6.5,
+    4.4
+  ],
+  "frames": 601,
+  "max_abs_divergence_all_steps": 2.851942570991639e-10,
+  "max_cfl_all_steps": 0.3264961599834186,
+  "max_abs_net_boundary_flux_all_steps": 3.7902009649033995e-17,
+  "max_abs_blocked_face_velocity_all_steps": 0.0,
+  "wall_seconds": 450.4447139600088,
+  "versions": {
+    "numpy": "2.3.5",
+    "scipy": "1.17.0",
+    "matplotlib": "3.10.8"
+  },
+  "source_sha256": {
+    "constants.py": "78d725759ff5f07ae960d363062de9d5fcc26037578418661a9b7ce2547c87d0",
+    "functions.py": "200f15d14b5bd5d93f1bdc669ea939e700c4e21a8ef806ba2a324b67f0a52710",
+    "operators.py": "36b9053cb4c867f6c9eda52d1567ba981ca6baf333971a3abc9d1ea6d9060234",
+    "simulation.py": "80c858908a2082c395a77602e5955d1778e7b66ab79246a2112c5b6cb2addd36",
+    "render_wake.py": "15a37e621d9ab07d83518ce2039624add214a7112bedc94b65effaf00fedbf10"
+  },
+  "video_fps": 24,
+  "video_duration_seconds": 25.041666666666668,
+  "video_codec": "H.264 / yuv420p",
+  "rendering_seconds": 33.46221859801153
+}
