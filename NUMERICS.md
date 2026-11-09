@@ -115,3 +115,34 @@ dt=0.005, final time=40. No artificial perturbation is added. All other solver
 and fixed-boundary choices match the cylinder demonstration. Axis and time labels
 use solver units; Reynolds number is explicitly based on chord. The same
 convergence limitations apply, particularly to the thin staircase surface.
+
+## Historical-video equivalent: pressure and velocity
+
+`render_naca_pressure.py` adds the missing pressure-colour/velocity-arrow view
+shown in https://www.youtube.com/watch?v=TGbapm781wk. The matching legacy asset
+is `movies/Tube_flow_nana_10e8_600_300.mp4` (99 frames, 10 fps, 864 × 368).
+Its filename is not evidence of a verified Reynolds number; the upload's
+description says low Reynolds number but gives no numerical parameters.
+
+The new case uses the corrected solver without further numerical changes:
+NACA 2412, 30° clockwise, chord 0.5, centre (1, 0.5), domain 2 × 1,
+400 × 200 cells, U=1, viscosity 1/600, chord Reynolds number 300, dt=0.0005,
+and final time 10. There is no imposed perturbation. All outer velocities
+remain fixed at (1, 0). This compact domain matches the old framing but is
+more confined than the earlier corrected wake demonstration; the resulting
+flow must not be interpreted as an unbounded, converged airfoil benchmark.
+
+The video records times 0.05 through 10 at 0.05 intervals (200 frames, 20 fps).
+The impulsive first projection is included in all-step diagnostics but omitted
+from the displayed frames. Pressure is kinematic pressure p/rho, with the
+instantaneous fluid mean in the inlet 10% strip subtracted to remove gauge
+dependence. The solid is masked before calculating colour limits. A single
+symmetric colour range uses the 99th percentile of absolute pressure across
+all saved frames, rounded up to 0.1; the colour bar marks saturated tails, and
+the JSON reports their fraction. Arrows sample cell-centred velocities on a
+39 × 19 lattice, mask solid cells, and retain one physical scale for all frames.
+
+A compressed local cache retains pressure and sampled velocities for exact
+re-rendering. Source hashes reject stale caches. Committed MP4/PNG, CSV, and
+JSON carry the output, per-frame checks, and run provenance respectively.
+Other historical MP4s have not been regenerated.

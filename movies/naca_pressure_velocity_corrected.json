@@ -1,0 +1,62 @@
+{
+  "case": "NACA 2412 pressure and velocity, historical-video framing",
+  "reference_video": "https://www.youtube.com/watch?v=TGbapm781wk",
+  "reference_repo_video": "movies/Tube_flow_nana_10e8_600_300.mp4",
+  "comparison": "Same visualization and 2 x 1 domain framing; newly specified run, not an exact parameter replay. Historical Reynolds number and timestep are unverified.",
+  "settings": {
+    "nx": 400,
+    "ny": 200,
+    "lx": 2.0,
+    "ly": 1.0,
+    "dt": 0.0005,
+    "tf": 10.0,
+    "Re": 600.0,
+    "velocity": 1.0,
+    "rho_arrow": 20,
+    "cholesky": true,
+    "nt": 20000
+  },
+  "profile": "2412",
+  "angle_degrees_clockwise": 30.0,
+  "chord": 0.5,
+  "center": [
+    1.0,
+    0.5
+  ],
+  "cells_per_chord": 100.0,
+  "reynolds_based_on_chord": 300.0,
+  "boundaries": "Fixed u=1, v=0 on all outer boundaries; no periodic or open outlet.",
+  "initial_condition": "Uniform flow outside the wing; no imposed perturbation; first step projects velocity.",
+  "pressure": "p/rho relative to the instantaneous fluid mean in the inlet 10% of the domain; masked inside the wing.",
+  "velocity_arrows": "Cell-centred velocity; fixed scale for all frames; masked inside the wing.",
+  "interpretation": "Visualization demonstration, not a converged aerodynamic benchmark. Compact fixed boundaries influence the solution.",
+  "frames": 200,
+  "first_frame_time": 0.05,
+  "sample_interval": 0.05,
+  "max_abs_divergence_all_steps": 1.0599229618990513e-08,
+  "max_cfl_all_steps": 0.7530084583495179,
+  "max_abs_net_boundary_flux_all_steps": 5.9886233528438005e-18,
+  "max_abs_blocked_face_velocity_all_steps": 0.0,
+  "simulation_seconds": 1050.2128420530003,
+  "source_sha256": {
+    "constants.py": "78d725759ff5f07ae960d363062de9d5fcc26037578418661a9b7ce2547c87d0",
+    "functions.py": "200f15d14b5bd5d93f1bdc669ea939e700c4e21a8ef806ba2a324b67f0a52710",
+    "operators.py": "36b9053cb4c867f6c9eda52d1567ba981ca6baf333971a3abc9d1ea6d9060234",
+    "simulation.py": "80c858908a2082c395a77602e5955d1778e7b66ab79246a2112c5b6cb2addd36",
+    "render_naca_pressure.py": "032336f1c1079b7bee6413024e0e64ba7a5814451fe02491f44e0a3739dd0c7e"
+  },
+  "versions": {
+    "numpy": "2.3.5",
+    "scipy": "1.17.0",
+    "matplotlib": "3.10.8"
+  },
+  "video_fps": 20,
+  "video_duration_seconds": 10.0,
+  "video_codec": "H.264 / yuv420p",
+  "pressure_colour_limits": [
+    -1.5,
+    1.5
+  ],
+  "pressure_colour_clipped_fraction": 0.009500176794463808,
+  "rendering_seconds": 10.000401276000048
+}
