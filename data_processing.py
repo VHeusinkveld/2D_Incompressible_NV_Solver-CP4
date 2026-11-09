@@ -3,6 +3,7 @@ import matplotlib.pyplot as plt
 import scipy.sparse.linalg as spala
 
 from functions import ave
+from operators import cell_velocity
 
 def plot_system(const, bc, obj, LP, data):
     """ Simulation of the 2D Navier-stokes equation
@@ -33,20 +34,14 @@ def plot_system(const, bc, obj, LP, data):
         plt.contourf(const.X_ave, const.Y_ave, data.P.T, 50, cmap='bwr')      
         plt.colorbar()
 
-    ## Flow
+    ## Streamlines from the actual velocity field, including through-flow.
     if const.plot_Q:
-        q_diff = (np.diff(data.U, n=1, axis=1)/const.hy-np.diff(data.V, n=1, axis=0)/const.hx)
-        if obj.sort != None:
-            q_diff = q_diff*(obj.Qgrid==0)
-        rhs = np.reshape(q_diff,(-1,), order='F')/const.dt
-        if const.cholesky:
-            q = LP.Lq_factor(rhs) 
-        else: 
-            q = spala.spsolve(LP.Lq, rhs)
-        Q = np.zeros((const.nx+1,const.ny+1), dtype=float)
-        Q[1:-1,1:-1] = np.reshape((q),(const.nx-1,const.ny-1), order='F')
-        plt.contour(const.x, const.y, np.abs(Q.T), 10, colors='k', linewidths=1) 
-    
+        uc, vc = cell_velocity(const, bc, data)
+        if obj.sort is not None:
+            uc = np.ma.array(uc, mask=obj.Pgrid)
+            vc = np.ma.array(vc, mask=obj.Pgrid)
+        plt.streamplot(ave(const.x, 'h'), ave(const.y, 'h'), uc.T, vc.T,
+                       color='k', density=1.2, linewidth=0.6)
 
     ## Velocity
     if const.plot_U:  
@@ -56,8 +51,9 @@ def plot_system(const, bc, obj, LP, data):
         Ve = np.vstack((bc.vW, Ve, bc.vE)).T 
         v_len = np.sqrt(Ue**2 + Ve**2)
 
-        Ue = Ue/np.max(v_len)
-        Ve = Ve/np.max(v_len)
+        speed_scale = max(float(np.max(v_len)), np.finfo(float).eps)
+        Ue = Ue/speed_scale
+        Ve = Ve/speed_scale
         #Ue[v_len!=0] = Ue[v_len!=0]/v_len[v_len!=0]
         #Ve[v_len!=0] = Ve[v_len!=0]/v_len[v_len!=0]
 

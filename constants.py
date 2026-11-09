@@ -22,7 +22,11 @@ def constants(self):
     
     self.rho_arrowx = int(np.max((np.round(self.nx/(self.rho_arrow*self.lx)), 1)))
     self.rho_arrowy = int(np.max((np.round(self.ny/(self.rho_arrow*self.ly)), 1)))
-    self.nt = np.ceil(self.tf/self.dt)
+    if self.dt <= 0 or self.tf <= 0 or self.Re <= 0:
+        raise ValueError('dt, tf and Re must be positive.')
+    if self.nx < 4 or self.ny < 4 or self.lx <= 0 or self.ly <= 0:
+        raise ValueError('Use a positive domain and at least four cells per direction.')
+    self.nt = int(np.ceil(self.tf/self.dt))
     self.dt = self.tf/self.nt;
 
     # Constuct grid

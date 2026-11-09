@@ -3,6 +3,7 @@ import scipy.sparse.linalg as spala
 
 from functions import *
 from data_processing import *
+from operators import divergence, pressure_rhs, courant_number
 
 def simulation(const, bc, obj, LP, data):
     """ Simulation of the 2D Navier-stokes equation
@@ -35,8 +36,7 @@ def simulation(const, bc, obj, LP, data):
         # Solving system for U, V and P
         simulation_step(const, bc, obj, LP, data)
         
-        # Periodic BC update
-        bc = update_BC(const, bc, data) 
+        # Prescribed boundary velocities stay fixed throughout this run.
         
         data.kin_energy = np.append(data.kin_energy, check_energy(data))
                 
@@ -48,7 +48,7 @@ def simulation(const, bc, obj, LP, data):
             if counter%50 == 0:
                 print('Iteration number: ' + str(counter))
             plot_system(const, bc, obj, LP, data)
-        if counter == np.ceil(const.tf/const.dt):
+        if counter == const.nt:
             print('Iteration number: ' + str(counter))
             
             if obj.sort != None:
@@ -83,6 +83,9 @@ def simulation_step(const, bc, obj, LP, data):
         containing data arrays of all 'measured' quanities after one iteration
         
     """
+    cfl = courant_number(const, bc, data)
+    if not np.isfinite(cfl) or cfl > 1:
+        raise ValueError(f'Explicit advection CFL is {cfl:.3g}; reduce dt and rebuild operators.')
     # Non linear terms
     Ue = np.vstack((bc.uW, data.U, bc.uE)).T
     Ue = np.vstack((2*bc.uS-Ue[0,:], Ue ,2*bc.uN-Ue[-1,:])).T
@@ -140,29 +143,23 @@ def simulation_step(const, bc, obj, LP, data):
         data.U = data.U*(obj.Ugrid==0)    
         data.V = data.V*(obj.Vgrid==0)
     
-    # Pressure correction
-    grad_U = np.diff(np.vstack((bc.uW, data.U, bc.uE)), n=1, axis=0)/const.hx +\
-             np.diff(np.vstack((bc.vS, (data.V).T, bc.vN)).T, n=1, axis=1)/const.hy
-    
-    if obj.sort != None:
-        grad_U = grad_U*(obj.Pgrid==0)
-    
-    rhs = np.reshape(grad_U,(-1,), order='F')/const.dt 
-    
+    # Pressure correction uses exactly the same blocked faces as velocity.
+    rhs = pressure_rhs(LP, divergence(const, bc, data), const.dt)
     if const.cholesky:
-        p = -LP.Lp_factor(rhs) 
+        p = LP.Lp_factor(rhs)
     else:
-        p = -spala.spsolve(LP.Lp, rhs)
-    data.P = np.reshape(p,(const.nx,const.ny), order='F') 
-    
+        p = spala.spsolve(LP.Lp, rhs)
+    data.P = np.reshape(p, (const.nx, const.ny), order='F')
+
     data.U = data.U - np.diff(data.P, n=1, axis=0)/const.hx*const.dt  
     data.V = data.V - np.diff(data.P, n=1, axis=1)/const.hy*const.dt
-    
-    #if obj.sort != None:
-    #    data.P = data.P*(obj.Pgrid==0)
     
     if obj.sort != None:    
         data.U = data.U*(obj.Ugrid==0)    
         data.V = data.V*(obj.Vgrid==0)
     
+    data.max_divergence = float(np.max(np.abs(divergence(const, bc, data))))
+    data.cfl = float(courant_number(const, bc, data))
+    if not np.isfinite(data.max_divergence):
+        raise FloatingPointError('Non-finite velocity after pressure correction.')
     return data

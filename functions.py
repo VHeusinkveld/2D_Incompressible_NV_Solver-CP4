@@ -4,7 +4,14 @@ import scipy.sparse as spa
 import matplotlib.pyplot as plt
 import math
 
-from sksparse.cholmod import cholesky
+import scipy.sparse.linalg as spala
+from matplotlib.path import Path
+from operators import pressure_operator, obstacle_diffusion, velocity_masks
+
+try:
+    from sksparse.cholmod import cholesky
+except ImportError:
+    cholesky = None
 from types import SimpleNamespace
 
 # -----------------------------------------------------------------------------------------------------------------------
@@ -37,30 +44,16 @@ def initialisation(const, data):
 # -----------------------------------------------------------------------------------------------------------------------
 
 def cholesky_decomposition(LP):
-    """Make factor object which handels cholesky decomposition.
-    
-    To solve a sparse system Lx = b use
-    factor = cholensky(L)
-    x = factor(b)
-    
-    Parameters
-    ----------
-    LP : Namespace
-        contains all the laplace matrices of the system without object
-    
-    Returns
-    -------
-    LP : Namespace
-        cholesky factors
+    """Cache sparse solves; use CHOLMOD when installed, otherwise SciPy LU.
+
+    The historical function name is retained for notebook compatibility.
     """
-    
-    LP.Lp_factor = cholesky(LP.Lp)
-    LP.Lu_factor = cholesky(LP.Lu)
-    LP.Lv_factor = cholesky(LP.Lv)
-    LP.Lq_factor = cholesky(LP.Lq)
-    
+    factor = cholesky if cholesky is not None else spala.factorized
+    LP.Lp_factor = factor(LP.Lp)
+    LP.Lu_factor = factor(LP.Lu)
+    LP.Lv_factor = factor(LP.Lv)
     return LP
-    
+
 def laplacian(const, LP):
     """
     Calculates the laplacian operator matrices
@@ -78,12 +71,9 @@ def laplacian(const, LP):
         contains all the laplace matrices of the system without object
         
     """
-    LP.Lp = spa.kron(
-        spa.eye(const.ny), laplace_m(const.nx, const.hx, 1), format="csc"
-    ) + spa.kron(
-        laplace_m(const.ny, const.hy, 1), spa.eye(const.nx), format="csc"
-    )
-    
+    blocked_u, blocked_v = velocity_masks(const, SimpleNamespace(sort=None))
+    pressure_operator(const, LP, blocked_u, blocked_v)
+
     LP.Lu = spa.eye((const.nx - 1) * const.ny, format="csc") + (const.dt / const.Re) * (
         spa.kron(
             spa.eye(const.ny), laplace_m(const.nx - 1, const.hx, 2), format="csc"
@@ -197,7 +187,7 @@ def gamma_calc(const, data):
 # -----------------------------------------------------------------------------------------------------------------------
 def set_BC(const, bc, situation):
     """
-    Sets the boundary conditions within the system. *ONLY 'lid' IS CURRENTLY FUNCTIONAL!!!*
+    Sets fixed velocity boundaries. Periodic boundaries are not implemented.
     
     Parameters
     ----------
@@ -215,6 +205,10 @@ def set_BC(const, bc, situation):
           
     """
     
+    supported = {'lid', 'horizontal_tube', 'vertical_tube', 'horizontal_sea', 'airfoil'}
+    if situation not in supported:
+        raise ValueError(f'Unsupported boundary type {situation!r}; choose one of {sorted(supported)}')
+    bc.kind = situation
     velocity = const.velocity
     
     if situation == 'lid':
@@ -295,51 +289,30 @@ def set_BM(const, bc):
     bc.Ubc = const.dt/const.Re*(
         (np.vstack(
             (2*bc.uS[1:-1], np.zeros((const.nx-1,const.ny-2), dtype=float).T, 2*bc.uN[1:-1])).T
-        )/const.hx**2 +
+        )/const.hy**2 +
         np.vstack(
             (bc.uW, np.zeros((const.nx-3, const.ny), dtype=float), bc.uE)
-        )/const.hy**2 )
+        )/const.hx**2 )
     bc.Vbc = const.dt/const.Re*(
         (np.vstack(
             (bc.vS, np.zeros((const.nx,const.ny-3), dtype = float).T, bc.vN)).T
-        )/const.hx**2 + 
+        )/const.hy**2 +
         np.vstack(
             (2*bc.vW[1:-1], np.zeros((const.nx-2, const.ny-1), dtype=float), 2*bc.vE[1:-1])
-        )/const.hy**2 )
+        )/const.hx**2 )
 
     return bc
 
 
 def update_BC(const, bc, data):
+    """Keep prescribed boundaries fixed (retained for existing callers).
+
+    Copying opposite interior rows is not a periodic MAC discretization: the
+    pressure and diffusion operators must also wrap for periodic flow.
     """
-    Updates the BCs such that is generaties periodic BC in the horizontal direction (from east to west and vice versa)
-    
-    Parameters
-    ----------
-    const : NameSpace
-        contains all system constants (incl. grid specifications)
-    obj : Namespace
-        Namespace with all specifications of the object
-    data : Namespace
-        Containing the pressure distribution in the system
-    
-    Returns
-    -------
-    force : float
-        force exerted on the object in the flow
-          
-    """
-    # Horizontal flow component
-    bc.uE = data.U[0,:]
-    bc.uW = data.U[-1,:]
-    
-    # Vertical flow component
-    bc.vE = np.append( np.append(bc.vS[-1], data.V[0,:]), bc.vN[-1] )
-    bc.vW = np.append( np.append(bc.vS[0], data.V[-1,:]), bc.vN[0] )
-    
-    # Update Ubc and Vbc
-    bc = set_BM(const, bc)
-    
+    if getattr(bc, 'kind', None) not in {
+            'lid', 'horizontal_tube', 'vertical_tube', 'horizontal_sea', 'airfoil'}:
+        raise ValueError('Set a supported fixed boundary type with set_BC first.')
     return bc
 
 
@@ -367,8 +340,8 @@ def creat_obj(const, obj):
         # Circular object
         scale = 1/4
         factorxy = 1 #const.lx/const.ly # Now the object is not scaled with the box ratio
-        R = const.lx*scale/4
-        cx, cy = const.lx/2, const.ly/2
+        R = getattr(obj, 'radius', const.lx*scale/4)
+        cx, cy = getattr(obj, 'center', (const.lx/2, const.ly/2))
 
         # Object for a centered grid
         ## Should have shape (nx, ny)
@@ -389,105 +362,37 @@ def creat_obj(const, obj):
         obj.cgrid = (((const.X_ave-cx)**2 + (factorxy*const.Y_ave-factorxy*cy)**2 <= R**2)*(-(const.Y_ave - (cy + translation_c))*math.tan(theta) <= const.X_ave - (cx + translation_c))).T
         
     if obj.sort == 'naca':
-        scale = 2
-        theta = -obj.angle/360*2*np.pi
+        # Rasterize the continuous outline at pressure-cell centres. This avoids
+        # gaps and angle-dependent thickness from rounding/filling boundary pixels.
+        chord = getattr(obj, 'chord', min(const.lx, const.ly) / 2)
+        cx, cy = getattr(obj, 'center', (const.lx / 2, const.ly / 2))
+        theta = -np.deg2rad(obj.angle)
+        samples = max(200, int(8 * chord / min(const.hx, const.hy)))
+        x, y = naca4(obj.profile, np.linspace(0, 1, samples + 1))
+        x, y = (np.asarray(x) - 0.5) * chord, np.asarray(y) * chord
+        xr = x * np.cos(theta) - y * np.sin(theta) + cx
+        yr = x * np.sin(theta) + y * np.cos(theta) + cy
+        points = np.c_[const.X_ave.ravel(), const.Y_ave.ravel()]
+        obj.cgrid = Path(np.c_[xr, yr]).contains_points(points).reshape(
+            const.X_ave.shape).T
+        obj.xcoord, obj.ycoord = xr / const.hx, yr / const.hy
 
-        x = const.x
-        y = const.y
-
-        data_start = int(np.floor((len(x)/2 - len(y)/2)))
-        data_end = int(np.floor(data_start + len(y)))
-
-        x = x[data_start:data_end]
-
-        cxgrid = 0.5*const.lx
-        cygrid = 0.5*const.ly
-
-        xr = x - cxgrid
-        yr = y - cygrid
-
-
-        length = (np.max(x) - np.min(x))/scale
-        xr = xr*np.cos(theta) - yr*np.sin(theta)
-        lox = (np.max(xr) - np.min(xr))/scale
-
-        cx = 0.5/scale
-        cy = 0
-
-        dx = const.lx/const.nx
-        dy = const.ly/const.ny
-
-        obj_nx = int(np.round(lox/dx))
-        obj_x = np.linspace(0, 1, obj_nx + 1)
-
-        [xn, yn] = naca4(obj.profile, obj_x, finite_TE = False)
-        xn, yn = np.array(xn), np.array(yn)
-        xn = (xn*length - cx)
-        yn =  yn/scale
-        
-        xnr = xn*np.cos(theta) - yn*np.sin(theta)
-        ynr = xn*np.sin(theta) + yn*np.cos(theta)
-
-        xnr = np.round((xnr + cxgrid)/dx)
-        ynr = np.round((ynr + cygrid)/dy)
-
-        obj.cgrid = np.zeros((const.ny, const.nx), dtype=float)
-
-        for i in range(len(xnr)):
-            x = int(xnr[i])
-            y = int(ynr[i])
-
-            obj.cgrid[y, x] = 1
-
-        for i in range(len(xnr)):
-            x = int(xnr[i])
-            bt = []
-            for j in range(len(obj.cgrid[:, x])):
-                if obj.cgrid[j, x] == 1:
-                    bt.append(j)
-            if len(bt) > 1:
-                obj.cgrid[bt[0]:bt[1], x] = 1
-
-        obj.cgrid = obj.cgrid + np.roll(obj.cgrid, -1, 1) > 0   
-        obj.cgrid = obj.cgrid.T
-        obj.xcoord = xnr
-        obj.ycoord = ynr
-        
     if obj.sort != None:
-        # Translate to P, U and V grid 
-        obj.Pgrid = np.zeros((const.nx, const.ny), dtype=float)
-        obj.Ugrid = np.zeros((const.nx-1, const.ny), dtype=float)
-        obj.Vgrid = np.zeros((const.nx, const.ny-1), dtype=float)
-        obj.Qgrid = np.zeros((const.nx-1, const.ny-1), dtype=float)
+        obj.Pgrid = np.asarray(obj.cgrid, dtype=bool)
+        if not np.any(obj.Pgrid):
+            raise ValueError('Object is unresolved on this grid; refine the mesh.')
+        if (np.any(obj.Pgrid[[0, -1], :]) or np.any(obj.Pgrid[:, [0, -1]])):
+            raise ValueError('Objects must lie inside the domain, away from outer boundaries.')
+        # A wall-normal velocity is blocked if either adjacent pressure cell is solid.
+        obj.Ugrid = obj.Pgrid[:-1, :] | obj.Pgrid[1:, :]
+        obj.Vgrid = obj.Pgrid[:, :-1] | obj.Pgrid[:, 1:]
+        obj.Qgrid = (obj.Pgrid[:-1, :-1] | obj.Pgrid[1:, :-1] |
+                     obj.Pgrid[:-1, 1:] | obj.Pgrid[1:, 1:])
+        obj.coord_P = np.where(obj.Pgrid)
+        obj.coord_U = np.where(obj.Ugrid)
+        obj.coord_V = np.where(obj.Vgrid)
+        obj.coord_Q = np.where(obj.Qgrid)
 
-        # P can center grid have a one to one correspondance
-        obj.Pgrid[:,:] = obj.cgrid
-    
-        # Q grid is a shifted by one P grid
-        obj.Qgrid[:,:] = (obj.Pgrid[:-1,:-1] + np.roll(obj.Pgrid[:-1,:-1], -1, axis = 0)) > 0
-        obj.Qgrid[:,:] = (obj.Qgrid[:,:] + \
-                              np.roll(obj.Qgrid[:,:], -1, axis = 1)) > 0
-        
-        # Create a 1 layer mesh around the center grid in vertical direction
-        obj.Ugrid[:,:] = (obj.Pgrid[:-1,:] + np.roll(obj.Pgrid[:-1,:], -1, axis = 0) ) > 0
-        obj.Ugrid[:,:] = (obj.Ugrid[:,:] + \
-                              np.roll(obj.Ugrid[:,:], -1, axis = 1) + \
-                              np.roll(obj.Ugrid[:,:], 1, axis = 1)) > 0
-        
-        # Create a 1 layer mesh around the center grid in horizontal direction
-        obj.Vgrid[:,:] = (obj.Pgrid[:,:-1] + np.roll(obj.Pgrid[:,:-1], -1, axis = 1) ) > 0
-        obj.Vgrid[:,:] = (obj.Vgrid[:,:] + \
-                              np.roll(obj.Vgrid[:,:], -1, axis = 0) + \
-                              np.roll(obj.Vgrid[:,:], 1, axis = 0)) > 0
-    
-        # These need to have the form:
-        # np.array([x-values], [y-values])
-        # ex: np.array([3, 4, 5, 9], [1, 2, 9, 5])
-        obj.coord_P = np.where(obj.Pgrid == np.max(obj.Pgrid))
-        obj.coord_U = np.where(obj.Ugrid == np.max(obj.Ugrid))
-        obj.coord_V = np.where(obj.Vgrid == np.max(obj.Vgrid))
-        obj.coord_Q = np.where(obj.Qgrid == np.max(obj.Qgrid))
-    
         # Identify the boundaries of the object
         obj = object_boundary(obj)
     
@@ -652,153 +557,24 @@ def naca4(number, x, finite_TE = False):
         xl = [xx + yy * math.sin(zz) for xx,yy,zz in zip(x,yt,theta)]
         yl = [xx - yy * math.cos(zz) for xx,yy,zz in zip(zc,yt,theta)]
 
-    X = xu[::-1] + xl[1:]
-    Z = yu[::-1] + yl[1:]
+    X = np.concatenate((np.asarray(xu)[::-1], np.asarray(xl)[1:]))
+    Z = np.concatenate((np.asarray(yu)[::-1], np.asarray(yl)[1:]))
 
     return X,Z
 
 
 def laplace_obj(const, LP, obj):
+    """Apply stationary no-slip obstacle faces and a compatible pressure solve.
+
+    Call once on fresh operators from laplacian for each geometry.
     """
-    Adjusts the laplace matrices of the system without object to the laplace matrices of the system with object.
-    
-    Parameters
-    ----------
-    const : NameSpace
-        contains all system constants (incl. grid specifications)
-    LP : Namespace
-        contains all the laplace matrices of the system without object
-    obj : Namespace
-        contains all specifications of the object
-    
-    Returns
-    -------
-    LP : Namespace
-        contains all the laplace matrices of the system with object
-          
-    """
-    if obj.sort != None:
-        lp_row = const.nx
-        lq_row = const.nx-1
-        lu_row = const.nx-1
-        lv_row = const.nx 
-
-        x_factor = (const.dt / const.Re)/const.hx**2
-        y_factor = (const.dt / const.Re)/const.hy**2   
-
-        # Object in Lp 
-        for obj_col, obj_row in np.transpose(obj.coord_P):
-            m_start = obj_row*lp_row
-
-            obj_n = m_start+obj_col
-            obj_m = m_start+obj_col
-            
-            ## Takes care of 0 seting in Laplace            
-            LP.Lp[obj_n+1, obj_m] = 0
-            LP.Lp[obj_n-1, obj_m] = 0            
-            
-            LP.Lp[obj_n, obj_m-1] = 0
-            LP.Lp[obj_n, obj_m+1] = 0
-            
-            LP.Lp[obj_n, obj_m-lp_row] = 0
-            LP.Lp[obj_n, obj_m+lp_row] = 0
-            
-            LP.Lp[obj_n-lp_row, obj_m] = 0
-            LP.Lp[obj_n+lp_row, obj_m] = 0
-            
-            ## Make matrix again postitive definite 
-            ## Horizontal neighbours  
-            LP.Lp[obj_n-1, obj_m-1] = LP.Lp[obj_n-1, obj_m-1] - x_factor
-            LP.Lp[obj_n+1, obj_m+1] = LP.Lp[obj_n+1, obj_m+1] - x_factor
-            ## Vertical neighbours 
-            LP.Lp[obj_n-lp_row, obj_m-lp_row] = LP.Lp[obj_n-lp_row, obj_m-lp_row] - y_factor
-            LP.Lp[obj_n+lp_row, obj_m+lp_row] = LP.Lp[obj_n+lp_row, obj_m+lp_row] - y_factor
-            
-        # Object in Lq
-        for obj_col, obj_row in np.transpose(obj.coord_P):
-            m_start = obj_row*lq_row
-
-            obj_n = m_start+obj_col
-            obj_m = m_start+obj_col
-            
-            ## Takes care of 0 seting in Laplace            
-            LP.Lq[obj_n+1, obj_m] = 0
-            LP.Lq[obj_n-1, obj_m] = 0            
-            
-            LP.Lq[obj_n, obj_m-1] = 0
-            LP.Lq[obj_n, obj_m+1] = 0
-            
-            LP.Lq[obj_n, obj_m-lq_row] = 0
-            LP.Lq[obj_n, obj_m+lq_row] = 0
-            
-            LP.Lq[obj_n-lq_row, obj_m] = 0
-            LP.Lq[obj_n+lq_row, obj_m] = 0
-            
-            ## Make matrix again postitive definite 
-            ## Horizontal neighbours  
-            LP.Lq[obj_n-1, obj_m-1] = LP.Lq[obj_n-1, obj_m-1] - 1
-            LP.Lq[obj_n+1, obj_m+1] = LP.Lq[obj_n+1, obj_m+1] - 1
-            ## Vertical neighbours 
-            LP.Lq[obj_n-lq_row, obj_m-lq_row] = LP.Lp[obj_n-lq_row, obj_m-lq_row] - 1
-            LP.Lq[obj_n+lq_row, obj_m+lq_row] = LP.Lp[obj_n+lq_row, obj_m+lq_row] - 1    
-
-        # Object in Lu
-        for obj_col, obj_row in np.transpose(obj.coord_U):
-            m_start = obj_row*lu_row
-
-            obj_n = m_start+obj_col
-            obj_m = m_start+obj_col
-            
-            ## Takes care of 0 seting in Laplace            
-            LP.Lu[obj_n+1, obj_m] = 0
-            LP.Lu[obj_n-1, obj_m] = 0            
-            
-            LP.Lu[obj_n, obj_m-1] = 0
-            LP.Lu[obj_n, obj_m+1] = 0
-            
-            LP.Lu[obj_n, obj_m-lu_row] = 0
-            LP.Lu[obj_n, obj_m+lu_row] = 0
-            
-            LP.Lu[obj_n-lu_row, obj_m] = 0
-            LP.Lu[obj_n+lu_row, obj_m] = 0
-            
-            ## Make matrix again postitive definite 
-            ## Horizontal neighbours 
-            #LP.Lu[obj_n-1, obj_m-1] = LP.Lu[obj_n-1, obj_m-1] - x_factor
-            #LP.Lu[obj_n+1, obj_m+1] = LP.Lu[obj_n+1, obj_m+1] - x_factor
-            
-            ## Vertical neighbours 
-            #LP.Lu[obj_n-lu_row, obj_m-lu_row] = LP.Lu[obj_n-lu_row, obj_m-lu_row] - y_factor
-            #LP.Lu[obj_n+lu_row, obj_m+lu_row] = LP.Lu[obj_n+lu_row, obj_m+lu_row] - y_factor  
-
-        # Object in Lv
-        for obj_col, obj_row in np.transpose(obj.coord_V):
-            m_start = obj_row*lv_row
-
-            obj_n = m_start+obj_col
-            obj_m = m_start+obj_col
-            
-            ## Takes care of 0 seting in Laplace            
-            LP.Lv[obj_n+1, obj_m] = 0
-            LP.Lv[obj_n-1, obj_m] = 0            
-            
-            LP.Lv[obj_n, obj_m-1] = 0
-            LP.Lv[obj_n, obj_m+1] = 0
-            
-            LP.Lv[obj_n, obj_m-lv_row] = 0
-            LP.Lv[obj_n, obj_m+lv_row] = 0
-            
-            LP.Lv[obj_n-lv_row, obj_m] = 0
-            LP.Lv[obj_n+lv_row, obj_m] = 0    
-            
-            ## Make matrix again postitive definite 
-            ## Horizontal neighbours
-            #LP.Lv[obj_n-1, obj_m-1] = LP.Lv[obj_n-1, obj_m-1] - x_factor
-            #LP.Lv[obj_n+1, obj_m+1] = LP.Lv[obj_n+1, obj_m+1] - x_factor
-            ## Vertical neighbours 
-            #LP.Lv[obj_n-lv_row, obj_m-lv_row] = LP.Lv[obj_n-lv_row, obj_m-lv_row] - y_factor
-            #LP.Lv[obj_n+lv_row, obj_m+lv_row] = LP.Lv[obj_n+lv_row, obj_m+lv_row] - y_factor
-    
+    blocked_u, blocked_v = velocity_masks(const, obj)
+    pressure_operator(const, LP, blocked_u, blocked_v)
+    if obj.sort is not None:
+        LP.Lu = obstacle_diffusion(LP.Lu, blocked_u, 1,
+                                  const.dt / const.Re / const.hy**2)
+        LP.Lv = obstacle_diffusion(LP.Lv, blocked_v, 0,
+                                  const.dt / const.Re / const.hx**2)
     return LP
 
 
