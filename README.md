@@ -1,6 +1,37 @@
 # Navier-Stokes: NACA-profile objects in 2D flow
 
-## NACA wing video
+## Pressure and velocity video (YouTube equivalent)
+
+[![NACA pressure and velocity](movies/naca_pressure_velocity_corrected.png)](movies/naca_pressure_velocity_corrected.mp4)
+
+[Watch the corrected pressure-and-velocity video](movies/naca_pressure_velocity_corrected.mp4).
+This reproduces the **pressure colours and velocity arrows** of the historical
+[YouTube video](https://www.youtube.com/watch?v=TGbapm781wk), with the same 2 × 1
+domain framing. The newly specified case is NACA 2412 at 30°, chord 0.5,
+Reynolds number 300 based on chord, and 400 × 200 cells (100 cells per chord).
+It runs to time 10 and produces a 10-second, 1280 × 720 MP4 at 20 fps.
+
+```sh
+OPENBLAS_NUM_THREADS=1 python render_naca_pressure.py
+```
+
+Pressure is relative to the instantaneous upstream mean; colour limits and
+velocity-arrow scaling remain fixed throughout the movie. The wing interior is
+masked. The original upload does not establish its exact Reynolds number or
+timestep, so this is a corrected visual equivalent, **not an exact replay of
+unverified historical parameters**. The compact fixed boundaries influence the
+flow. See the accompanying JSON and CSV for settings and diagnostics.
+
+### Render inventory
+
+| Video | Status |
+| --- | --- |
+| `movies/naca_pressure_velocity_corrected.mp4` | New corrected pressure + velocity view, matching the reference's presentation |
+| `movies/naca_wake_corrected.mp4` | New corrected vorticity + probe view, wider domain |
+| `movies/cylinder_wake_corrected.mp4` | New corrected cylinder validation example |
+| Other MP4s in `movies/` | Historical outputs; **not re-rendered** with the corrected solver |
+
+## NACA wing vorticity video
 
 [![NACA 2412 wing](movies/naca_wake_corrected.png)](movies/naca_wake_corrected.mp4)
 
@@ -73,4 +104,10 @@ historical output.
 
 *render_wake.py*: Reproducible cylinder simulation and video rendering.
 
+*render_naca.py*: Wing vorticity and probe video.
+
+*render_naca_pressure.py*: Wing pressure and velocity video matching the historical presentation.
+
 *tests/test_solver.py*: Numerical regression checks, also run in GitHub Actions.
+
+*tests/test_pressure_video.py*: Gauge-invariance check for the displayed pressure.
