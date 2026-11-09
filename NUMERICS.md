@@ -104,3 +104,14 @@ the staircase surface, 12.5% blockage, and the distant fixed outlet affect the
 solution. In particular, late vortices can interact with the outlet. Do not use
 this video or the legacy pressure-force estimator as validated drag, lift, or
 Strouhal data. The historical movies and saved result arrays were not recomputed.
+
+## NACA wing video
+
+`python render_naca.py` renders NACA 2412 at 30 degrees, matching the saved
+notebook's profile and first angle. The chord is 2 solver length units (40 cells),
+centred at (4,4), with clockwise geometric rotation as in the notebook. With
+U=1 and nu=1/150 this is Re_c=300. Domain and mesh are 20×8 and 400×160;
+dt=0.005, final time=40. No artificial perturbation is added. All other solver
+and fixed-boundary choices match the cylinder demonstration. Axis and time labels
+use solver units; Reynolds number is explicitly based on chord. The same
+convergence limitations apply, particularly to the thin staircase surface.

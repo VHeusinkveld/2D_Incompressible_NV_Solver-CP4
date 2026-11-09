@@ -1,6 +1,12 @@
 # Navier-Stokes: NACA-profile objects in 2D flow
 
-## Corrected solver and new video
+## NACA wing video
+
+[![NACA 2412 wing](movies/naca_wake_corrected.png)](movies/naca_wake_corrected.mp4)
+
+The requested wing is **NACA 2412 at 30°**, matching the notebook profile and first angle. Chord 2, Reynolds number 300 based on chord, 400 × 160 cells, and no imposed perturbation. Reproduce with `OPENBLAS_NUM_THREADS=1 python render_naca.py`. Settings and diagnostics accompany the MP4. This remains a finite-grid demonstration, not a converged aerodynamic benchmark.
+
+## Cylinder validation video
 
 [![Corrected cylinder wake](movies/cylinder_wake_corrected.png)](movies/cylinder_wake_corrected.mp4)
 
